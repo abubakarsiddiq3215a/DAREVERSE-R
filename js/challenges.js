@@ -21,7 +21,7 @@ async function renderChallenges(tab) {
     if (tab === 'created') {
         items = challenges.filter(c => c.creator === me.id);
     } else if (tab === 'pending') {
-        items = challenges.filter(c => c.targets.includes(me.id) && c.status[me.id] === 'pending');
+        items = challenges.filter(c => c.targets.includes(me.id) && (c.status[me.id] === 'pending' || c.status[me.id] === 'accepted'));
     } else {
         items = challenges.filter(c => c.targets.includes(me.id) && (c.status[me.id] === 'completed' || c.status[me.id] === 'approved'));
     }

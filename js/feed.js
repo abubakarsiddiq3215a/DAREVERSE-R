@@ -52,7 +52,7 @@ function challengeCardHTML(c, userMap, proofs) {
     const status = c.status || {};
     const myStatus = status[me.id] || null;
     const completedCount = Object.values(status).filter(s => s === 'completed' || s === 'approved').length;
-    const acceptedCount = Object.values(status).filter(s => s === 'pending' || s === 'completed' || s === 'approved').length;
+    const acceptedCount = Object.values(status).filter(s => s === 'pending' || s === 'accepted' || s === 'completed' || s === 'approved').length;
     const total = targets.length;
     const catIcon = getCategoryIcon(c.category);
     const isExpired = myStatus === 'expired';
@@ -64,6 +64,8 @@ function challengeCardHTML(c, userMap, proofs) {
     if (!isMyChallenge && amITarget) {
       if (myStatus === 'pending') {
         actionBtn = `<button class="btn btn-primary btn-sm" onclick="confirmIDare('${c.id}')">${icon('zap', 14)} I Dare</button>`;
+      } else if (myStatus === 'accepted') {
+        actionBtn = `<button class="btn btn-primary btn-sm" onclick="openSubmitProof('${c.id}')">${icon('upload', 14)} Submit Proof</button>`;
         } else if (myStatus === 'completed' || myStatus === 'approved') {
             actionBtn = `<button class="btn btn-success btn-sm" onclick="viewMyProof('${c.id}')">${icon('eye', 14)} View Proof</button>`;
         } else if (isExpired) {
@@ -160,21 +162,47 @@ async function confirmIDare(chalId) {
     content.innerHTML = `
     <div style="text-align:center;padding:1.5rem 0;">
       <div style="display:flex;justify-content:center;margin-bottom:0.75rem;">${icon('zap', 36)}</div>
-      <div style="font-weight:700;font-size:1.1rem;margin-bottom:0.5rem;">You are about to accept this challenge</div>
+      <div style="font-weight:700;font-size:1.1rem;margin-bottom:0.5rem;">Ready to accept this challenge?</div>
       <div style="color:var(--muted);font-size:0.875rem;margin-bottom:1rem;">${chal.name}</div>
       <div style="background:rgba(255,60,111,0.08);border:1px solid rgba(255,60,111,0.2);border-radius:10px;padding:0.75rem;font-size:0.8rem;color:var(--muted);">
-        ${isPublic ? 'By accepting, you commit to submitting proof and community voting will decide validity.' : 'By accepting, you commit to submitting proof to complete the challenge.'}
+        ${isPublic ? 'Accepting will mark this public challenge as yours and unlock the Submit Proof button.' : 'Accepting will mark this challenge as yours and unlock the Submit Proof button.'}
       </div>
     </div>`;
 
     const footer = document.querySelector('#viewProofModal .modal-footer');
     footer.innerHTML = `
     <button class="btn btn-ghost" onclick="closeModal('viewProofModal')">Not Yet</button>
-    <button class="btn btn-primary" onclick="closeModal('viewProofModal');openSubmitProof('${chalId}')">${icon('zap', 14)} Accept Challenge</button>`;
+    <button class="btn btn-primary" onclick="acceptChallenge('${chalId}')">${icon('zap', 14)} Accept Challenge</button>`;
 
     const title = document.querySelector('#viewProofModal .modal-title');
     title.innerHTML = `${icon('zap', 24)} I Dare`;
     openModal('viewProofModal');
+}
+
+async function acceptChallenge(chalId) {
+    const me = Auth.me();
+    const challenges = await DB.getChallenges();
+    const chal = challenges.find(c => c.id === chalId);
+    if (!chal) return;
+
+    if (!Array.isArray(chal.targets)) chal.targets = [];
+    if (!chal.status) chal.status = {};
+
+    if (!chal.targets.includes(me.id)) {
+        chal.targets.push(me.id);
+    }
+    chal.status[me.id] = 'accepted';
+
+    await db.collection('challenges').doc(chalId).update({
+        targets: chal.targets,
+        status: chal.status
+    });
+
+    await Notifications.send(chal.creator, 'challenge_accepted', { challengeName: chal.name });
+
+    closeModal('viewProofModal');
+    toast('Challenge accepted. Tap Submit Proof when you are ready.', 'success');
+    renderPage(currentPage);
 }
 
 // Accept a public challenge you're not tagged in
@@ -184,14 +212,14 @@ async function acceptPublicChallenge(chalId) {
     const chal = challenges.find(c => c.id === chalId);
     if (!chal) return;
 
-    if (chal.targets.includes(me.id)) {
-        openSubmitProof(chalId);
-        return;
-    }
+    if (!Array.isArray(chal.targets)) chal.targets = [];
+    if (!chal.status) chal.status = {};
 
-    // Add me to targets
-    chal.targets.push(me.id);
-    chal.status[me.id] = 'pending';
+    // Add me to targets and mark the challenge as accepted
+    if (!chal.targets.includes(me.id)) {
+      chal.targets.push(me.id);
+    }
+    chal.status[me.id] = 'accepted';
     await db.collection('challenges').doc(chalId).update({
         targets: chal.targets,
         status: chal.status
@@ -200,8 +228,8 @@ async function acceptPublicChallenge(chalId) {
     // Notify creator
     await Notifications.send(chal.creator, 'challenge_accepted', { challengeName: chal.name });
 
-    toast('You accepted this public challenge!', 'success');
-    openSubmitProof(chalId);
+    toast('You accepted this public challenge. Submit Proof is now available.', 'success');
+    renderPage(currentPage);
 }
 
 async function confirmDelete(chalId) {
