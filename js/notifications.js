@@ -7,12 +7,12 @@ const Notifications = {
     unreadCount: 0,
 
     /**
-     * Start listening for real-time notifications
+     * Start listening for real-time notification
      */
     startListener(userId) {
         if (this.unsubscribe) this.unsubscribe(); // Clean up previous
 
-        this.unsubscribe = db.collection('notifications')
+        this.unsubscribe = db.collection('notification')
             .where('to', '==', userId)
             .orderBy('timestamp', 'desc')
             .limit(30)
@@ -25,7 +25,7 @@ const Notifications = {
                 this.unreadCount = unread;
                 this.updateBadge();
 
-                // Show toast for new real-time notifications
+                // Show toast for new real-time notification
                 snapshot.docChanges().forEach(change => {
                     if (change.type === 'added') {
                         const n = change.doc.data();
@@ -92,7 +92,7 @@ const Notifications = {
             ...data
         };
 
-        await db.collection('notifications').doc(notif.id).set(notif);
+        await db.collection('notification').doc(notif.id).set(notif);
     },
 
     /**
@@ -105,7 +105,7 @@ const Notifications = {
 
         panel.innerHTML = `<div style="text-align:center;padding:1.5rem;">${icon('clock', 24)}</div>`;
 
-        const snapshot = await db.collection('notifications')
+        const snapshot = await db.collection('notification')
             .where('to', '==', me.id)
             .orderBy('timestamp', 'desc')
             .limit(20)
@@ -117,7 +117,7 @@ const Notifications = {
             panel.innerHTML = `
             <div style="text-align:center;padding:2rem;color:var(--muted);">
                 ${icon('bell', 32)}
-                <div style="margin-top:0.5rem;font-size:0.85rem;">No notifications yet</div>
+                <div style="margin-top:0.5rem;font-size:0.85rem;">No notification yet</div>
             </div>`;
             return;
         }
