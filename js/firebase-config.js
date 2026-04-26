@@ -19,15 +19,12 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Latest Firebase 10.x way to enable persistence and remove console warnings
-// This replaces the old db.settings and db.enablePersistence calls
+// Standard settings - removed the conflicting 'ForceLongPolling'
 db.settings({
-    experimentalForceLongPolling: true, // Helps with some network environments
-    merge: true // Removes the "overriding host" warning
+    cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED
 });
 
-// Enable persistence the older but stable compat way, ignoring the deprecation notice 
-// as the "new" way is mostly for the Modular SDK, but we'll clean up the settings call.
+// Enable persistence (Offline mode)
 db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
     if (err.code == 'failed-precondition') {
         console.warn('Firebase persistence failed: Multiple tabs open');
