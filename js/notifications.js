@@ -62,12 +62,13 @@ const Notifications = {
      */
     showToast(n) {
         const messages = {
-            'friend_request': `${n.fromName} sent you a friend request!`,
-            'friend_accepted': `${n.fromName} accepted your friend request!`,
-            'challenge_sent': `${n.fromName} challenged you: "${n.challengeName}"`,
-            'challenge_completed': `${n.fromName} completed your challenge!`,
-            'proof_approved': `Your proof was approved! +${n.points || 0} pts`,
-            'proof_rejected': `Your proof was rejected by ${n.fromName}`
+            'friend_request':       `${n.fromName} sent you a friend request!`,
+            'friend_accepted':      `${n.fromName} accepted your friend request!`,
+            'challenge_sent':       `${n.fromName} challenged you: "${n.challengeName}"`,
+            'challenge_completed':  `${n.fromName} completed your challenge!`,
+            'challenge_accepted':   `${n.fromName} accepted your public challenge!`,
+            'proof_approved':       `Your proof was approved! +${n.points || 0} pts`,
+            'proof_rejected':       `Your proof was rejected`
         };
         const msg = messages[n.type] || n.message || 'New notification';
         const toastType = n.type.includes('reject') ? 'error' : n.type.includes('approved') ? 'success' : 'info';
@@ -138,29 +139,32 @@ const Notifications = {
      */
     notifItemHTML(n) {
         const icons = {
-            'friend_request': 'userPlus',
-            'friend_accepted': 'checkCircle',
-            'challenge_sent': 'zap',
+            'friend_request':      'userPlus',
+            'friend_accepted':     'checkCircle',
+            'challenge_sent':      'zap',
             'challenge_completed': 'award',
-            'proof_approved': 'checkCircle',
-            'proof_rejected': 'xCircle'
+            'challenge_accepted':  'globe',
+            'proof_approved':      'checkCircle',
+            'proof_rejected':      'xCircle'
         };
         const colors = {
-            'friend_request': 'var(--neon)',
-            'friend_accepted': 'var(--green)',
-            'challenge_sent': 'var(--accent)',
+            'friend_request':      'var(--neon)',
+            'friend_accepted':     'var(--green)',
+            'challenge_sent':      'var(--accent)',
             'challenge_completed': 'var(--gold)',
-            'proof_approved': 'var(--green)',
-            'proof_rejected': 'var(--accent)'
+            'challenge_accepted':  'var(--purple)',
+            'proof_approved':      'var(--green)',
+            'proof_rejected':      'var(--accent)'
         };
 
         const messages = {
-            'friend_request': `<strong>${n.fromName}</strong> sent you a friend request`,
-            'friend_accepted': `<strong>${n.fromName}</strong> accepted your friend request`,
-            'challenge_sent': `<strong>${n.fromName}</strong> challenged you: "${n.challengeName || ''}"`,
+            'friend_request':      `<strong>${n.fromName}</strong> sent you a friend request`,
+            'friend_accepted':     `<strong>${n.fromName}</strong> accepted your friend request`,
+            'challenge_sent':      `<strong>${n.fromName}</strong> challenged you: "${n.challengeName || ''}"`,
             'challenge_completed': `<strong>${n.fromName}</strong> completed your challenge`,
-            'proof_approved': `Your proof was <strong style="color:var(--green);">approved</strong>! +${n.points || 0} pts`,
-            'proof_rejected': `Your proof was <strong style="color:var(--accent);">rejected</strong>`
+            'challenge_accepted':  `<strong>${n.fromName}</strong> accepted your public challenge`,
+            'proof_approved':      `Your proof was <strong style="color:var(--green);">approved</strong>! +${n.points || 0} pts`,
+            'proof_rejected':      `Your proof was <strong style="color:var(--accent);">rejected</strong>`
         };
 
         const ic = icons[n.type] || 'bell';

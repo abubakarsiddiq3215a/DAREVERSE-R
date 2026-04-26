@@ -15,6 +15,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 </head>
 <body>
     <!-- HEADER (Desktop Nav) -->
@@ -28,7 +29,10 @@
             <button onclick="showPage('leaderboard')" id="nav-leaderboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22"/><path d="M18 2H6v7a6 6 0 1012 0V2z"/></svg> <span>Ranks</span></button>
             <button onclick="showPage('profile')" id="nav-profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4-4v2"/><circle cx="12" cy="7" r="4"/></svg> <span>Profile</span></button>
         </nav>
-        <div style="display:flex;align-items:center;gap:0.5rem;">
+        <div class="header-actions">
+            <button class="notif-bell" id="admin-launch-btn" onclick="openAdminPage()" title="Admin" style="display:none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </button>
             <button class="notif-bell" onclick="openModal('helpModal')" title="Help & Rules">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             </button>
@@ -94,6 +98,7 @@
 
             <div class="tabs" style="margin-bottom:1.25rem;">
                 <button class="tab active" onclick="switchFeedTab('all',this)">All Activity</button>
+                <button class="tab" onclick="switchFeedTab('public',this)">Public</button>
                 <button class="tab" onclick="switchFeedTab('sent',this)">Sent to You</button>
                 <button class="tab" onclick="switchFeedTab('mine',this)">Your Challenges</button>
             </div>
@@ -163,6 +168,14 @@
                 <label>Description / How to Complete</label>
                 <textarea id="chal-desc" placeholder="Describe exactly how to complete this challenge..."></textarea>
             </div>
+            <div class="form-group">
+                <label>Visibility</label>
+                <select id="chal-visibility">
+                    <option value="friends">Friends Only</option>
+                    <option value="public">Public (Community Challenge)</option>
+                </select>
+                <div style="font-size:0.72rem;color:var(--muted);margin-top:0.25rem;">Public challenges are visible to everyone and proofs are voted on by the community.</div>
+            </div>
             <div class="form-group" style="position:relative;">
                 <label>Send to Friends (type @ to tag)</label>
                 <div class="tag-input-wrap" id="tag-wrap" onclick="document.getElementById('tag-raw').focus()">
@@ -170,6 +183,7 @@
                     <input type="text" id="tag-raw" placeholder="@username" autocomplete="off" oninput="tagInput(this.value)" onkeydown="tagKeyDown(event)">
                 </div>
                 <div class="tag-suggestions" id="tag-sugg"></div>
+                <button type="button" class="btn btn-ghost btn-xs" onclick="tagAllFriends()" style="margin-top:0.5rem;" id="tag-all-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> Tag All Friends</button>
             </div>
             <div class="form-group">
                 <label>Difficulty</label>
@@ -199,25 +213,32 @@
                     <option value="gaming">Gaming</option>
                     <option value="food">Food</option>
                     <option value="creative">Creative</option>
-                    <option value="brain">Brain</option>
-                    <option value="outdoor">Outdoor</option>
-                    <option value="funny">Funny</option>
+                    <option value="entertainment">Entertainment</option>
+                    <option value="honor">Honor</option>
+                    <option value="social">Social</option>
+                    <option value="education">Education</option>
                 </select>
+            </div>
+            <div class="form-group">
+                <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+                    <input type="checkbox" id="chal-honor" style="width:auto;accent-color:var(--gold);cursor:pointer;">
+                    <span>Honor-based Challenge <span style="color:var(--muted);font-size:0.75rem;">(no proof upload, +5 pts on completion)</span></span>
+                </label>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-ghost" onclick="closeModal('createChallengeModal')">Cancel</button>
-                <button class="btn btn-primary" onclick="createChallenge()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Send Challenge</button>
+                <button class="btn btn-primary" onclick="createChallenge()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Post Challenge</button>
             </div>
         </div>
     </div>
 
-    <!-- SUBMIT PROOF MODAL -->
+    <!-- I DARE MODAL -->
     <div class="modal-overlay" id="submitProofModal">
         <div class="modal">
-            <div class="modal-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px;color:var(--accent);"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg> Submit Proof</div>
+            <div class="modal-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px;color:var(--accent);"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> I Dare</div>
             <div id="proof-chal-info" style="margin-bottom:1.25rem;"></div>
             <div class="form-group">
-                <label>Upload Proof (max 10MB — auto-compressed)</label>
+                <label>Upload Proof (max 10MB, auto-compressed)</label>
                 <div class="upload-area" id="proof-upload-area" onclick="document.getElementById('proof-file').click()">
                     <div id="proof-upload-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:32px;height:32px;color:var(--muted);margin:0 auto;"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg></div>
                     <div class="upload-text" id="proof-upload-text">Click to upload proof</div>
@@ -231,7 +252,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-ghost" onclick="closeModal('submitProofModal')">Cancel</button>
-                <button class="btn btn-primary" onclick="submitProof()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit</button>
+                <button class="btn btn-primary" onclick="submitProof()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> I Dare</button>
             </div>
         </div>
     </div>
@@ -259,7 +280,7 @@
                 <div class="help-heading"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> The Basics</div>
                 <ul class="help-list">
                     <li><strong>Create a Challenge:</strong> Dare your friends with fun tasks. Tag them to send the challenge.</li>
-                    <li><strong>Submit Proof:</strong> Complete a dare and upload a photo or video as evidence (up to 10MB, auto-compressed).</li>
+                    <li><strong>I Dare:</strong> Accept a challenge and upload a photo or video as evidence (up to 10MB, auto-compressed).</li>
                     <li><strong>Verify Proofs:</strong> As a challenge creator, you review and approve or reject your friends' submissions.</li>
                     <li><strong>Earn Points:</strong> Get ranked points for completing challenges, creating them, and verifying proofs.</li>
                 </ul>
@@ -269,10 +290,10 @@
                 <div class="help-heading"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22"/><path d="M18 2H6v7a6 6 0 1012 0V2z"/></svg> Ranking System</div>
                 <div class="help-ranks-grid">
                     <div class="help-rank-item"><span class="rank-badge rank-rookie">Rookie</span><span class="help-rank-pts">0 pts</span></div>
-                    <div class="help-rank-item"><span class="rank-badge rank-challenger">Challenger</span><span class="help-rank-pts">100 pts</span></div>
-                    <div class="help-rank-item"><span class="rank-badge rank-daredevil">DareDevil</span><span class="help-rank-pts">500 pts</span></div>
-                    <div class="help-rank-item"><span class="rank-badge rank-legend">Legend</span><span class="help-rank-pts">2,000 pts</span></div>
-                    <div class="help-rank-item"><span class="rank-badge rank-champion">Champion</span><span class="help-rank-pts">5,000 pts</span></div>
+                    <div class="help-rank-item"><span class="rank-badge rank-challenger">Challenger</span><span class="help-rank-pts">150 pts</span></div>
+                    <div class="help-rank-item"><span class="rank-badge rank-daredevil">DareDevil</span><span class="help-rank-pts">600 pts</span></div>
+                    <div class="help-rank-item"><span class="rank-badge rank-legend">Legend</span><span class="help-rank-pts">2,500 pts</span></div>
+                    <div class="help-rank-item"><span class="rank-badge rank-champion">Champion</span><span class="help-rank-pts">6,000 pts</span></div>
                 </div>
             </div>
 
@@ -280,9 +301,12 @@
                 <div class="help-heading"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg> Points Breakdown</div>
                 <ul class="help-list">
                     <li><strong>Easy / Med / Hard:</strong> +10 / +25 / +50 pts</li>
+                    <li><strong>Honor Challenge:</strong> +5 pts (auto-approved, no proof needed)</li>
                     <li><strong>Early Bird:</strong> +15 bonus (Be in first 10 completers)</li>
                     <li><strong>Viral Creator:</strong> +20 pts (10 completions) / +50 pts (50 completions)</li>
                     <li><strong>Streak Bonus:</strong> +30 pts (5-day) / +75 pts (10-day)</li>
+                    <li><strong>Community Vote:</strong> +1 pt per vote cast on public proofs</li>
+                    <li><strong>WhatsApp Share:</strong> +2 pts per share</li>
                     <li><strong>Standard Actions:</strong> Create (+5) / Verify (+2)</li>
                 </ul>
             </div>
@@ -314,16 +338,26 @@
                         <div class="help-badge-icon" style="color:var(--green);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
                         <div><strong>Verifier</strong><br><span style="color:var(--muted);font-size:0.75rem;">Approve 5 proofs</span></div>
                     </div>
+                    <div class="help-badge-item">
+                        <div class="help-badge-icon" style="color:var(--gold);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+                        <div><strong>Domain Master</strong><br><span style="color:var(--muted);font-size:0.75rem;">10 challenges in one category</span></div>
+                    </div>
+                    <div class="help-badge-item">
+                        <div class="help-badge-icon" style="color:var(--purple);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></div>
+                        <div><strong>Social Butterfly</strong><br><span style="color:var(--muted);font-size:0.75rem;">Share 5 challenges to WhatsApp</span></div>
+                    </div>
                 </div>
             </div>
 
             <div class="help-section">
                 <div class="help-heading"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Rules</div>
                 <ul class="help-list">
-                    <li>Be respectful — no harmful, offensive, or NSFW content.</li>
-                    <li>Submit genuine proof — fake submissions may lead to account action.</li>
-                    <li>Challenge creators have final say on approval/rejection.</li>
-                    <li>Keep challenges fun and safe — no dangerous stunts!</li>
+                    <li>Be respectful - no harmful, offensive, or NSFW content.</li>
+                    <li>Submit genuine proof - fake submissions will be caught by community voting.</li>
+                    <li><strong>Public challenges</strong>: proofs are verified by community vote (5+ votes, 70%+ valid = approved).</li>
+                    <li><strong>Private challenges</strong>: challenge creator has final say on approval/rejection.</li>
+                    <li><strong>Honor challenges</strong>: self-declared completion, auto-approved for +5 pts only.</li>
+                    <li>Keep challenges fun and safe - no dangerous stunts.</li>
                     <li>Streaks reset if you skip a day without completing a challenge.</li>
                 </ul>
             </div>

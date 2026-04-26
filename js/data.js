@@ -64,8 +64,7 @@ const DB = {
             badges: [],
             completedByCategory: {},
             totalCompleted: 0,
-            totalCreated: 0,
-            teamChallengesCompleted: 0
+            totalCreated: 0
         };
     },
 

@@ -52,15 +52,28 @@ nav button {
     gap: 0.4rem;
     position: relative;
 }
+nav button,
+.bottom-nav button,
+.notif-bell,
+.user-badge {
+    transition: color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
+}
 nav button svg { width: 18px; height: 18px; flex-shrink: 0; }
-nav button:hover { color: var(--text); background: var(--bg3); }
-nav button.active { color: var(--accent); background: rgba(255,60,111,0.1); }
+nav button:hover { color: var(--text); background: var(--bg3); transform: translateY(-1px); }
+nav button.active { color: var(--accent); background: rgba(255,60,111,0.1); transform: translateY(-1px); }
 
 .user-badge {
     display: flex;
     align-items: center;
     gap: 0.6rem;
     cursor: pointer;
+    flex-shrink: 0;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     margin-left: auto;
     flex-shrink: 0;
 }
@@ -78,9 +91,21 @@ main {
     padding: var(--space-xl);
     max-width: var(--max-width);
     margin: 0 auto;
-    animation: fadeIn 0.2s ease;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+    will-change: opacity, transform;
 }
-.page.active { display: block; }
+.page.active {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+}
+.page.leaving {
+    display: block;
+    opacity: 0;
+    transform: translateY(-6px);
+}
 
 /* GRIDS */
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }

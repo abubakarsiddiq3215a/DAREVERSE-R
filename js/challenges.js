@@ -8,7 +8,7 @@ let currentChalForProof = null;
 async function renderChallenges(tab) {
     const me = Auth.me();
     const list = document.getElementById('chal-list');
-    
+
     list.innerHTML = `<div style="text-align:center;padding:2rem;">${icon('clock', 32)}</div>`;
 
     const challenges = await DB.getChallenges();
@@ -23,7 +23,7 @@ async function renderChallenges(tab) {
     } else if (tab === 'pending') {
         items = challenges.filter(c => c.targets.includes(me.id) && c.status[me.id] === 'pending');
     } else {
-        items = challenges.filter(c => c.targets.includes(me.id) && c.status[me.id] === 'completed');
+        items = challenges.filter(c => c.targets.includes(me.id) && (c.status[me.id] === 'completed' || c.status[me.id] === 'approved'));
     }
 
     list.innerHTML = `<div style="margin-top:1rem;">${items.length ? items.map(c => challengeCardHTML(c, userMap, proofs)).join('') : emptyState('Nothing here')}</div>`;
@@ -41,17 +41,16 @@ async function tagInput(val) {
     const sugg = document.getElementById('tag-sugg');
     if (!val.includes('@')) { sugg.classList.remove('open'); return; }
     const query = val.split('@').pop().toLowerCase();
-    
+
     const friendIds = await DB.getFriends(me.id);
     const allUsers = await DB.getUsers();
     const friends = allUsers.filter(u => friendIds.includes(u.id));
-    
-    // BUG FIX: was using `q` instead of `query`
+
     const matches = friends.filter(f =>
         !taggedUsers.find(t => t.id === f.id) &&
         (f.name.toLowerCase().includes(query) || f.username.toLowerCase().includes(query))
     );
-    
+
     if (!matches.length) { sugg.classList.remove('open'); return; }
     sugg.innerHTML = matches.map(f => `
     <div class="tag-sug-item" onclick="addTag('@${f.username}','${f.id}')">
@@ -90,7 +89,25 @@ function tagKeyDown(e) {
 
 function challengeFriend(id) {
     openModal('createChallengeModal');
-    setTimeout(() => { addTag('@friend', id); }, 100);
+    // Look up user after a brief delay to ensure modal is open
+    DB.getUserById(id).then(user => {
+        if (user) addTag(`@${user.username}`, id);
+    });
+}
+
+// Add all friends at once
+async function tagAllFriends() {
+    const me = Auth.me();
+    const friendIds = await DB.getFriends(me.id);
+    const allUsers = await DB.getUsers();
+    const friends = allUsers.filter(u => friendIds.includes(u.id));
+
+    for (const f of friends) {
+        if (!taggedUsers.find(t => t.id === f.id)) {
+            await addTag(`@${f.username}`, f.id);
+        }
+    }
+    toast(`Tagged ${friends.length} friend${friends.length !== 1 ? 's' : ''}!`, 'success');
 }
 
 async function createChallenge() {
@@ -101,12 +118,25 @@ async function createChallenge() {
     const category = document.getElementById('chal-cat').value;
     const difficulty = document.getElementById('chal-diff').value;
     const deadline = document.getElementById('chal-deadline').value || null;
+    const visibilityEl = document.getElementById('chal-visibility');
+    const honorEl = document.getElementById('chal-honor');
+
+    const isPublic = visibilityEl ? visibilityEl.value === 'public' : false;
+    const isHonor = honorEl ? honorEl.checked : false;
 
     if (!name) { toast('Please enter a challenge name'); return; }
     if (!desc) { toast('Please describe how to complete it'); return; }
-    if (!taggedUsers.length) { toast('Tag at least one friend to send this to'); return; }
 
-    const targets = taggedUsers.map(t => t.id);
+    // For public challenges, tagging friends is optional (it broadcasts to all)
+    // For private challenges, tagging is required
+    if (!isPublic && !taggedUsers.length) {
+        toast('Tag at least one friend, or set visibility to Public');
+        return;
+    }
+
+    let targets = taggedUsers.map(t => t.id);
+
+    // If public, still include tagged friends
     const status = {};
     targets.forEach(id => status[id] = 'pending');
 
@@ -117,6 +147,9 @@ async function createChallenge() {
         creator: me.id,
         targets, status,
         deadline,
+        isPublic,
+        isHonor,
+        visibility: isPublic ? 'public' : 'friends',
         date: new Date().toISOString().split('T')[0]
     };
 
@@ -134,13 +167,14 @@ async function createChallenge() {
     document.getElementById('chal-deadline').value = '';
     document.getElementById('tag-chips').innerHTML = '';
     taggedUsers = [];
+    if (honorEl) honorEl.checked = false;
 
     const gameData = await DB.getGameData(me.id);
     const el = document.getElementById('stat-created');
     if (el) el.textContent = gameData.totalCreated;
 
     closeModal('createChallengeModal');
-    toast(`Challenge sent!`, 'success');
+    toast(`Challenge ${isPublic ? 'posted publicly' : 'sent'}!`, 'success');
     showPage('feed');
 }
 
@@ -153,7 +187,7 @@ async function deleteChallenge(chalId) {
 }
 
 // ==========================================
-// Deadline helpers (restored — were missing)
+// Deadline helpers
 // ==========================================
 function getDeadlineHTML(chal) {
     if (!chal.deadline) return '';
@@ -177,7 +211,7 @@ function checkDeadlines() {
 }
 
 // ==========================================
-// File selection handler (was missing)
+// File selection handler
 // ==========================================
 function fileSelected(input) {
     if (input.files[0]) {
@@ -200,17 +234,29 @@ async function openSubmitProof(chalId) {
     const chal = challenges.find(c => c.id === chalId);
     if (!chal) return;
 
+    const isHonor = chal.isHonor || false;
+
     document.getElementById('proof-chal-info').innerHTML = `
     <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:1rem;">
       <div style="font-weight:600;margin-bottom:0.25rem;">${getCategoryIcon(chal.category)} ${chal.name}</div>
       <div style="font-size:0.8rem;color:var(--muted);">${chal.desc}</div>
+            ${isHonor ? `<div style="margin-top:0.5rem;">${getHonorBadge(true)} <span style="font-size:0.75rem;color:var(--gold);">Honor-based - auto-approved, +5 pts</span></div>` : ''}
+            ${chal.isPublic ? `<div style="margin-top:0.3rem;">${getVisibilityBadge('public')} <span style="font-size:0.75rem;color:var(--purple);">Public - community will vote on your proof</span></div>` : ''}
     </div>`;
 
-    const uploadIcon = document.getElementById('proof-upload-icon');
-    uploadIcon.innerHTML = icon(chal.proofType === 'video' ? 'video' : 'camera', 32);
-    document.getElementById('proof-upload-text').textContent = 'Click to upload proof (max 10MB)';
-    document.getElementById('proof-upload-area').classList.remove('has-file');
-    document.getElementById('proof-file').value = '';
+    // For honor-based, no file upload needed
+    if (isHonor) {
+        document.getElementById('proof-upload-area').style.display = 'none';
+        document.querySelector('#submitProofModal label').textContent = 'Honor Declaration';
+    } else {
+        document.getElementById('proof-upload-area').style.display = '';
+        const uploadIcon = document.getElementById('proof-upload-icon');
+        uploadIcon.innerHTML = icon(chal.proofType === 'video' ? 'video' : 'camera', 32);
+        document.getElementById('proof-upload-text').textContent = 'Click to upload proof (max 10MB)';
+        document.getElementById('proof-upload-area').classList.remove('has-file');
+        document.getElementById('proof-file').value = '';
+    }
+
     document.getElementById('proof-note').value = '';
     openModal('submitProofModal');
 }
@@ -219,15 +265,41 @@ async function submitProof() {
     const me = Auth.me();
     const challenges = await DB.getChallenges();
     const chal = challenges.find(c => c.id === currentChalForProof);
-    const file = document.getElementById('proof-file').files[0];
+    if (!chal) return;
+
+    const isHonor = chal.isHonor || false;
     const note = document.getElementById('proof-note').value || 'Completed!';
 
-    if (!file) { toast('Please upload a file'); return; }
-    
-    if (file.size > 10 * 1024 * 1024) {
-        toast('File too large! Max 10MB.', 'error');
+    // Honor-based: auto-approve, no file needed
+    if (isHonor) {
+        const newProof = {
+            id: 'p' + Date.now(),
+            chalId: currentChalForProof,
+            fromId: me.id,
+            fileType: null,
+            fileName: null,
+            fileUrl: null,
+            note,
+            date: new Date().toISOString().split('T')[0],
+            approved: true,
+            isHonor: true,
+            votes: {}
+        };
+        await DB.addProof(newProof);
+        // Use targeted update instead of full overwrite
+        const updatedStatus = Object.assign({}, chal.status || {}, { [me.id]: 'approved' });
+        await db.collection('challenges').doc(chal.id).update({ status: updatedStatus });
+        await Gamification.awardHonorCompletion(me.id);
+        await Notifications.send(chal.creator, 'challenge_completed', { challengeName: chal.name });
+        closeModal('submitProofModal');
+        toast('Honor declared! +5 pts', 'success');
+        renderPage(currentPage);
         return;
     }
+
+    const file = document.getElementById('proof-file').files[0];
+    if (!file) { toast('Please upload a file'); return; }
+    if (file.size > 10 * 1024 * 1024) { toast('File too large! Max 10MB.', 'error'); return; }
 
     const btn = document.querySelector('#submitProofModal .btn-primary');
     const originalHTML = btn.innerHTML;
@@ -235,13 +307,15 @@ async function submitProof() {
     btn.innerHTML = `${icon('clock', 14)} Uploading...`;
 
     try {
-        // Upload to Cloudinary with progress
         const result = await Cloudinary.upload(file, 'proofs', (pct) => {
             btn.innerHTML = `${icon('clock', 14)} Uploading ${pct}%...`;
         });
 
         const isVideo = file.type.startsWith('video/');
-        
+
+        // Public challenges → pending_vote; private → pending approval by creator
+        const approvedVal = null;
+
         const newProof = {
             id: 'p' + Date.now(),
             chalId: currentChalForProof,
@@ -251,19 +325,28 @@ async function submitProof() {
             fileUrl: result.url,
             note,
             date: new Date().toISOString().split('T')[0],
-            approved: null
+            approved: approvedVal,
+            votes: {}
         };
 
         await DB.addProof(newProof);
         chal.status[me.id] = 'completed';
-        await DB.addChallenge(chal);
-        await Gamification.awardCompletion(me.id, chal.difficulty, chal.category);
+        // Use targeted update to avoid overwriting the whole doc
+        const updatedStatus = Object.assign({}, chal.status || {}, { [me.id]: 'completed' });
+        await db.collection('challenges').doc(chal.id).update({ status: updatedStatus });
 
-        // Notify challenge creator
+        // Award points right away only for private challenges (public wait for community vote)
+        if (!chal.isPublic) {
+            await Gamification.awardCompletion(me.id, chal.difficulty, chal.category, chal.id);
+        }
+
         await Notifications.send(chal.creator, 'challenge_completed', { challengeName: chal.name });
 
         closeModal('submitProofModal');
-        toast('Proof submitted!', 'success');
+        const msg = chal.isPublic
+            ? 'Proof submitted. Community voting is now active.'
+            : 'Proof submitted! Waiting for creator approval.';
+        toast(msg, 'success');
         renderPage(currentPage);
     } catch (error) {
         console.error("Proof submission error:", error);
@@ -294,15 +377,24 @@ async function viewMyProof(chalId) {
         }
     }
 
-    const statusBadge = proof.approved === null ? `<span class="badge badge-gold">${icon('clock', 12)} Pending Review</span>`
-        : proof.approved ? `<span class="badge badge-green">${icon('checkCircle', 12)} Approved</span>`
-        : `<span class="badge badge-red">${icon('xCircle', 12)} Rejected</span>`;
+    let statusBadge;
+    if (proof.isHonor) {
+        statusBadge = `<span class="badge badge-gold">${icon('shield', 12)} Honor Declared</span>`;
+    } else if (proof.approved === null) {
+        const votes = proof.votes || {};
+        const vCnt = Object.keys(votes).length;
+        statusBadge = `<span class="badge badge-gold">${icon('clock', 12)} ${chal && chal.isPublic ? `Community Voting (${vCnt} votes)` : 'Pending Review'}</span>`;
+    } else if (proof.approved) {
+        statusBadge = `<span class="badge badge-green">${icon('checkCircle', 12)} Approved</span>`;
+    } else {
+        statusBadge = `<span class="badge badge-red">${icon('xCircle', 12)} Rejected</span>`;
+    }
 
     content.innerHTML = `
     <div style="background:var(--bg3);border-radius:10px;padding:1rem;margin-bottom:1rem;">
       <div style="font-weight:600;">${chal ? chal.name : 'Unknown'}</div>
     </div>
-    <div class="proof-viewer">${mediaHTML}</div>
+    ${proof.isHonor ? `<div style="padding:1.5rem;text-align:center;background:var(--bg3);border-radius:10px;margin-bottom:1rem;">${icon('shield', 40)}<div style="margin-top:0.5rem;font-size:0.85rem;color:var(--muted);">Honor declaration — no media proof</div></div>` : `<div class="proof-viewer">${mediaHTML}</div>`}
     ${proof.note ? `<div style="padding:1rem;background:var(--bg3);border-radius:10px;font-style:italic;margin-top:0.75rem;">"${proof.note}"</div>` : ''}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.75rem;">
       ${statusBadge}
@@ -311,5 +403,7 @@ async function viewMyProof(chalId) {
 
     const footer = document.querySelector('#viewProofModal .modal-footer');
     footer.innerHTML = `<button class="btn btn-ghost" onclick="closeModal('viewProofModal')">Close</button>`;
+    const title = document.querySelector('#viewProofModal .modal-title');
+    title.innerHTML = `${icon('eye', 24)} View Proof`;
     openModal('viewProofModal');
 }

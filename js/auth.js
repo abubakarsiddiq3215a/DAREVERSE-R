@@ -80,8 +80,7 @@ const Auth = {
                 badges: [],
                 completedByCategory: {},
                 totalCompleted: 0,
-                totalCreated: 0,
-                teamChallengesCompleted: 0
+                totalCreated: 0
             };
             await db.collection('gamification').doc(uid).set(initialGameData);
 

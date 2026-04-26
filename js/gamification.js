@@ -5,21 +5,23 @@
 const Gamification = {
     // Ranks configuration
     RANKS: [
-        { name: 'Rookie', min: 0, css: 'rank-rookie' },
-        { name: 'Challenger', min: 100, css: 'rank-challenger' },
-        { name: 'DareDevil', min: 500, css: 'rank-daredevil' },
-        { name: 'Legend', min: 2000, css: 'rank-legend' },
-        { name: 'Champion', min: 5000, css: 'rank-champion' }
+        { name: 'Rookie',     min: 0,     css: 'rank-rookie' },
+        { name: 'Challenger', min: 150,   css: 'rank-challenger' },
+        { name: 'DareDevil',  min: 600,   css: 'rank-daredevil' },
+        { name: 'Legend',     min: 2500,  css: 'rank-legend' },
+        { name: 'Champion',   min: 6000,  css: 'rank-champion' }
     ],
 
     // Badge definitions
     BADGES: {
-        'First Blood': { icon: 'zap', desc: 'Complete your first challenge' },
-        'On Fire': { icon: 'flame', desc: 'Maintain a 7-day streak' },
-        'Unstoppable': { icon: 'award', desc: 'Complete 10 hard challenges' },
-        'Socialite': { icon: 'userPlus', desc: 'Add 10 friends' },
-        'Creator': { icon: 'plus', desc: 'Create 5 challenges' },
-        'Verifier': { icon: 'checkCircle', desc: 'Approve 5 proofs' }
+        'First Blood':      { icon: 'zap',        desc: 'Complete your first challenge' },
+        'On Fire':          { icon: 'flame',       desc: 'Maintain a 7-day streak' },
+        'Unstoppable':      { icon: 'award',       desc: 'Complete 10 hard challenges' },
+        'Socialite':        { icon: 'userPlus',    desc: 'Add 10 friends' },
+        'Creator':          { icon: 'plus',        desc: 'Create 5 challenges' },
+        'Verifier':         { icon: 'checkCircle', desc: 'Approve 5 proofs' },
+        'DomainMaster':     { icon: 'star',        desc: 'Complete 10 challenges in one category' },
+        'Social Butterfly': { icon: 'share2',      desc: 'Share 5 challenges to WhatsApp' }
     },
 
     // Get current rank based on points
@@ -54,35 +56,54 @@ const Gamification = {
         const ptsMap = { easy: 10, medium: 25, hard: 50 };
         let pts = ptsMap[difficulty] || 10;
 
-        // NEW: Be in first 10 completers -> +15 bonus pts
-        const challenges = await DB.getChallenges();
-        const chal = challenges.find(c => c.id === chalId);
-        if (chal) {
-            const completedCount = Object.values(chal.status).filter(s => s === 'approved' || s === 'completed').length;
-            if (completedCount <= 10) {
-                pts += 15;
-                toast('+15 Early Bird Bonus!', 'success');
-            }
+        // Early Bird bonus — be in first 10 completers
+        if (chalId) {
+            const challenges = await DB.getChallenges();
+            const chal = challenges.find(c => c.id === chalId);
+            if (chal) {
+                const completedCount = Object.values(chal.status).filter(s => s === 'approved' || s === 'completed').length;
+                if (completedCount <= 10) {
+                    pts += 15;
+                    toast('+15 Early Bird Bonus!', 'success');
+                }
 
-            // NEW: Creator bonuses for popularity
-            // Check if this completion just pushed the challenge to a milestone
-            if (completedCount === 10) {
-                await this.awardPopularity(chal.creator, 20, chal.name);
-            } else if (completedCount === 50) {
-                await this.awardPopularity(chal.creator, 50, chal.name);
+                // Creator popularity bonuses
+                if (completedCount === 10) {
+                    await this.awardPopularity(chal.creator, 20, chal.name);
+                } else if (completedCount === 50) {
+                    await this.awardPopularity(chal.creator, 50, chal.name);
+                }
+
             }
         }
 
         data.rankPoints += pts;
         data.totalCompleted += 1;
-        
+
         // Update category stats
+        if (!data.completedByCategory) data.completedByCategory = {};
         data.completedByCategory[category] = (data.completedByCategory[category] || 0) + 1;
 
-        // Check for badges
+        // ---- Badge checks ----
+
+        // First Blood
         if (data.totalCompleted === 1 && !data.badges.includes('First Blood')) {
             data.badges.push('First Blood');
             toast('Badge Earned: First Blood!', 'info');
+        }
+
+        // Unstoppable — 10 hard challenges
+        const hardCount = (data.hardCompleted || 0) + (difficulty === 'hard' ? 1 : 0);
+        data.hardCompleted = hardCount;
+        if (hardCount >= 10 && !data.badges.includes('Unstoppable')) {
+            data.badges.push('Unstoppable');
+            toast('Badge Earned: Unstoppable!', 'info');
+        }
+
+        // DomainMaster — 10 in one category
+        if (data.completedByCategory[category] >= 10 && !data.badges.includes('DomainMaster')) {
+            data.badges.push('DomainMaster');
+            toast(`Badge Earned: Domain Master in ${category}!`, 'info');
         }
 
         // Streak logic
@@ -90,11 +111,11 @@ const Gamification = {
         if (data.lastChallengeDate) {
             const last = new Date(data.lastChallengeDate);
             const diff = Math.floor((new Date(today) - last) / (1000 * 60 * 60 * 24));
-            
+
             if (diff === 1) {
                 data.currentStreak += 1;
-                
-                // NEW: Streak Bonuses
+
+                // Streak Bonuses
                 if (data.currentStreak === 5) {
                     data.rankPoints += 30;
                     toast('5-Day Streak! +30 pts', 'success');
@@ -104,7 +125,7 @@ const Gamification = {
                 }
 
                 if (data.currentStreak > data.longestStreak) data.longestStreak = data.currentStreak;
-                if (data.currentStreak === 7 && !data.badges.includes('On Fire')) {
+                if (data.currentStreak >= 7 && !data.badges.includes('On Fire')) {
                     data.badges.push('On Fire');
                     toast('Badge Earned: On Fire!', 'info');
                 }
@@ -120,17 +141,49 @@ const Gamification = {
         return data;
     },
 
-    // NEW: Helper for awarding points to creators when their dares go viral
+    // Honor-based challenge: auto-approve with 5 pts
+    async awardHonorCompletion(userId) {
+        const data = await DB.getGameData(userId);
+        data.rankPoints += 5;
+        data.totalCompleted += 1;
+        await DB.saveGameData(userId, data);
+        toast('+5 pts — Honor completion!', 'success');
+        return data;
+    },
+
+    // Award for voting on a community proof
+    async awardVoting(userId) {
+        const data = await DB.getGameData(userId);
+        data.rankPoints += 1;
+        await DB.saveGameData(userId, data);
+        return data;
+    },
+
+    // Award for sharing to WhatsApp
+    async awardShare(userId) {
+        const data = await DB.getGameData(userId);
+        if (!data.shareCount) data.shareCount = 0;
+        data.shareCount += 1;
+        data.rankPoints += 2;
+
+        if (data.shareCount >= 5 && !data.badges.includes('Social Butterfly')) {
+            data.badges.push('Social Butterfly');
+            toast('Badge Earned: Social Butterfly!', 'info');
+        }
+
+        await DB.saveGameData(userId, data);
+        return data;
+    },
+
+    // Helper for awarding points to creators when their dares go viral
     async awardPopularity(creatorId, pts, chalName) {
         const data = await DB.getGameData(creatorId);
         data.rankPoints += pts;
         await DB.saveGameData(creatorId, data);
-        
-        // If the creator is the current user, toast them. 
-        // If not, we could send a notification in a real app.
+
         const me = Auth.me();
         if (me && me.id === creatorId) {
-            toast(`Popularity Bonus! Your challenge "${chalName}" hit a milestone: +${pts} pts`, 'success');
+            toast(`Popularity Bonus! "${chalName}" hit a milestone: +${pts} pts`, 'success');
         }
     },
 
@@ -138,7 +191,7 @@ const Gamification = {
         const data = await DB.getGameData(userId);
         data.rankPoints += 5;
         data.totalCreated += 1;
-        
+
         if (data.totalCreated === 5 && !data.badges.includes('Creator')) {
             data.badges.push('Creator');
             toast('Badge Earned: Creator!', 'info');
@@ -150,8 +203,26 @@ const Gamification = {
 
     async awardVerification(userId) {
         const data = await DB.getGameData(userId);
+        if (!data.verificationsCount) data.verificationsCount = 0;
         data.rankPoints += 2;
+        data.verificationsCount += 1;
+
+        if (data.verificationsCount >= 5 && !data.badges.includes('Verifier')) {
+            data.badges.push('Verifier');
+            toast('Badge Earned: Verifier!', 'info');
+        }
+
         await DB.saveGameData(userId, data);
         return data;
+    },
+
+    async awardFriendship(userId) {
+        const data = await DB.getGameData(userId);
+        const friends = await DB.getFriends(userId);
+        if (friends.length >= 10 && !data.badges.includes('Socialite')) {
+            data.badges.push('Socialite');
+            toast('Badge Earned: Socialite!', 'info');
+            await DB.saveGameData(userId, data);
+        }
     }
 };

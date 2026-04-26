@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DareVerse Admin</title>
+    <meta name="description" content="DareVerse Admin analytics dashboard.">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/layout.css">
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <header>
+        <div class="logo" onclick="window.location.href='app.html'" style="cursor:pointer;">DAREVERSE ADMIN</div>
+        <nav>
+            <button class="active" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> <span>Analytics</span></button>
+        </nav>
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+            <span id="admin-user-name" style="font-size:0.85rem;color:var(--muted);"></span>
+            <button class="btn btn-ghost btn-sm" onclick="window.location.href='app.html'">Back to App</button>
+            <button class="btn btn-primary btn-sm" onclick="Admin.startRealtime('admin-content')">Refresh</button>
+            <button class="btn btn-ghost btn-sm" onclick="Auth.logout()">Logout</button>
+        </div>
+    </header>
+
+    <main>
+        <div class="page active" style="max-width:1200px;">
+            <div class="page-header">
+                <div>
+                    <div class="section-title"><span>Admin</span> Analytics</div>
+                    <p style="color:var(--muted);font-size:0.9rem;margin-top:-1rem;">Platform-wide insights and real-time monitoring</p>
+                </div>
+            </div>
+            <div id="admin-content"></div>
+        </div>
+    </main>
+
+    <script src="js/icons.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/admin.js"></script>
+    <script>
+        initAdminApp();
+    </script>
+</body>
+</html>

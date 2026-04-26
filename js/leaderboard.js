@@ -5,34 +5,38 @@
 async function renderLeaderboard(tab) {
     const me = Auth.me();
     const list = document.getElementById('lb-list');
-    
-    list.innerHTML = `<div style="text-align:center;padding:2rem;">${icon('clock', 32)}</div>`;
+
+    list.innerHTML = `<div style="text-align:center;padding:2rem;">${icon('clock', 32)}<div style="margin-top:0.5rem;color:var(--muted);">Loading rankings...</div></div>`;
 
     const friendIds = await DB.getFriends(me.id);
     const allUsers = await DB.getUsers();
-    
-    // Build player list with gamification data
+
     let players = [];
-    
+
     for (const u of allUsers) {
         const isMe = u.id === me.id;
+        // Friends tab: show me + friends only. Global tab: show ALL users.
         if (tab === 'friends' && !isMe && !friendIds.includes(u.id)) continue;
-        
+
         const gd = await DB.getGameData(u.id);
         players.push({
-            id: u.id, name: u.name, initials: u.initials,
-            rankPoints: gd.rankPoints,
-            totalCompleted: gd.totalCompleted,
-            currentStreak: gd.currentStreak,
-            isMe: isMe
+            id: u.id,
+            name: u.name,
+            username: u.username,
+            initials: u.initials,
+            profileImage: u.profileImage,
+            rankPoints: gd.rankPoints || 0,
+            totalCompleted: gd.totalCompleted || 0,
+            currentStreak: gd.currentStreak || 0,
+            isMe
         });
     }
 
-    // Sort by rank points
+    // Sort by rank points descending
     players.sort((a, b) => b.rankPoints - a.rankPoints);
 
     if (!players.length) {
-        list.innerHTML = emptyState('No players yet');
+        list.innerHTML = emptyState(tab === 'friends' ? 'Add friends to compare ranks!' : 'No players yet');
         return;
     }
 
@@ -58,7 +62,10 @@ async function renderLeaderboard(tab) {
         </div>
         <div class="progress-bar" style="width:120px;max-width:100%;margin-top:4px;"><div class="progress-fill" style="width:${pct}%;background:${rankColors[i] || 'var(--accent)'}"></div></div>
       </div>
-      <div class="lb-score">${p.rankPoints} pts</div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div class="lb-score">${p.rankPoints} pts</div>
+        <div style="font-size:0.68rem;color:var(--muted);">${p.totalCompleted} done</div>
+      </div>
     </div>`;
     }).join('') + '</div>';
 }
@@ -68,3 +75,4 @@ function switchLbTab(tab, btn) {
     btn.classList.add('active');
     renderLeaderboard(tab);
 }
+

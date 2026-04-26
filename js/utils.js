@@ -52,17 +52,28 @@ function getCategoryIcon(cat) {
 }
 
 function getCategoryLabel(cat) {
-    const labels = { fitness: 'Fitness', gaming: 'Gaming', food: 'Food', creative: 'Creative', brain: 'Brain', outdoor: 'Outdoor', funny: 'Funny' };
+    const labels = {
+        fitness: 'Fitness',
+        gaming: 'Gaming',
+        food: 'Food',
+        creative: 'Creative',
+        entertainment: 'Entertainment',
+        honor: 'Honor',
+        social: 'Social',
+        education: 'Education'
+    };
     return labels[cat] || cat;
 }
 
 function getDifficultyBadge(diff) {
+    if (!diff) return '';
     const cls = diff === 'easy' ? 'diff-easy' : diff === 'medium' ? 'diff-medium' : 'diff-hard';
     const label = diff.charAt(0).toUpperCase() + diff.slice(1);
     return `<span class="badge ${cls}">${label}</span>`;
 }
 
 function getProofTypeBadge(pt) {
+    if (!pt) return '';
     if (pt === 'video') return `<span class="badge badge-blue">${icon('video')} Video</span>`;
     if (pt === 'image') return `<span class="badge badge-blue">${icon('camera')} Image</span>`;
     return `<span class="badge badge-blue">${icon('camera')} / ${icon('video')}</span>`;
@@ -90,12 +101,17 @@ function fileToBase64(file) {
 
 // Avatar HTML helper — supports profile images
 function avatarHTML(user, isMe, size) {
-    const sizeClass = size === 'sm' ? ' sm' : size === 'lg' ? ' lg' : '';
+    if (!user) {
+        // Fallback for missing user
+        const sizeClass = size === 'sm' ? ' sm' : size === 'lg' ? ' lg' : size === 'xs' ? ' xs' : '';
+        return `<div class="avatar friend${sizeClass}">?</div>`;
+    }
+    const sizeClass = size === 'sm' ? ' sm' : size === 'lg' ? ' lg' : size === 'xs' ? ' xs' : '';
     const colorClass = isMe ? 'me' : 'friend';
-    const initials = user.initials || DB.getInitials(user.name);
+    const initials = user.initials || DB.getInitials(user.name || '?');
     
     if (user.profileImage) {
-        return `<div class="avatar ${colorClass}${sizeClass}" style="padding:0;overflow:hidden;"><img src="${user.profileImage}" alt="${user.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>`;
+        return `<div class="avatar ${colorClass}${sizeClass}" style="padding:0;overflow:hidden;"><img src="${user.profileImage}" alt="${user.name || ''}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>`;
     }
     return `<div class="avatar ${colorClass}${sizeClass}">${initials}</div>`;
 }
@@ -105,4 +121,45 @@ function initModals() {
     document.querySelectorAll('.modal-overlay').forEach(o => {
         o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
     });
+}
+
+// WhatsApp share helper
+function shareToWhatsApp(chalName, chalDesc, username) {
+    const rawName = username || Auth.me()?.name || 'A DareVerse player';
+    const playerName = rawName.startsWith('@') ? rawName : `@${rawName}`;
+    const text = `*DareVerse Challenge*\n\n*${chalName}*\n${chalDesc}\n\nShared by: ${playerName}\nThink you can do it? Join DareVerse and prove yourself.\n${window.location.origin}/app.html`;
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+}
+
+// Get visibility badge
+function getVisibilityBadge(visibility) {
+    if (visibility === 'public') return `<span class="badge badge-purple">${icon('globe', 11)} Public</span>`;
+    return `<span class="badge badge-blue">${icon('lock', 11)} Friends</span>`;
+}
+
+// Get honor-based badge
+function getHonorBadge(isHonor) {
+    if (isHonor) return `<span class="badge badge-gold">${icon('shield', 11)} Honor</span>`;
+    return '';
+}
+
+async function isCurrentUserAdmin() {
+    const me = Auth.me();
+    if (!me) return false;
+
+    try {
+        const doc = await db.collection('admins').doc(me.id).get();
+        return doc.exists;
+    } catch (error) {
+        console.warn('Admin lookup failed:', error);
+        return false;
+    }
+}
+
+function openAdminPage() {
+    sessionStorage.setItem('dv_admin_entry', JSON.stringify({
+        ts: Date.now()
+    }));
+    window.location.href = 'admin.html';
 }
