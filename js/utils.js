@@ -70,15 +70,15 @@ function getProofTypeBadge(pt) {
 
 // File size warning
 function checkFileSize(file) {
-    const maxSize = 2 * 1024 * 1024; // 2MB
+    const maxSize = 10 * 1024 * 1024; // 10MB (Cloudinary)
     if (file.size > maxSize) {
-        toast('File too large! Max 2MB for localStorage storage.', 'error');
+        toast('File too large! Max 10MB.', 'error');
         return false;
     }
     return true;
 }
 
-// Convert file to base64
+// Convert file to base64 (kept for backward compatibility)
 function fileToBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -88,11 +88,15 @@ function fileToBase64(file) {
     });
 }
 
-// Avatar HTML helper
+// Avatar HTML helper — supports profile images
 function avatarHTML(user, isMe, size) {
     const sizeClass = size === 'sm' ? ' sm' : size === 'lg' ? ' lg' : '';
     const colorClass = isMe ? 'me' : 'friend';
     const initials = user.initials || DB.getInitials(user.name);
+    
+    if (user.profileImage) {
+        return `<div class="avatar ${colorClass}${sizeClass}" style="padding:0;overflow:hidden;"><img src="${user.profileImage}" alt="${user.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>`;
+    }
     return `<div class="avatar ${colorClass}${sizeClass}">${initials}</div>`;
 }
 

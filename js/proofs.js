@@ -111,8 +111,11 @@ async function verifyProof(proofId, approved) {
             chal.status[proof.fromId] = 'approved';
             await db.collection('challenges').doc(chal.id).update({ status: chal.status });
         }
+        const pts = chal ? (chal.difficulty === 'hard' ? 50 : chal.difficulty === 'medium' ? 25 : 10) : 10;
+        await Notifications.send(proof.fromId, 'proof_approved', { points: pts, challengeName: chal ? chal.name : '' });
         toast('Proof approved!', 'success');
     } else {
+        await Notifications.send(proof.fromId, 'proof_rejected', {});
         toast('Proof rejected');
     }
 

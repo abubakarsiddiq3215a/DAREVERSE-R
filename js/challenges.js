@@ -123,6 +123,11 @@ async function createChallenge() {
     await DB.addChallenge(newChal);
     await Gamification.awardCreation(me.id);
 
+    // Send notifications to tagged users
+    for (const targetId of targets) {
+        await Notifications.send(targetId, 'challenge_sent', { challengeName: name });
+    }
+
     // Reset form
     document.getElementById('chal-name').value = '';
     document.getElementById('chal-desc').value = '';
@@ -176,13 +181,14 @@ function checkDeadlines() {
 // ==========================================
 function fileSelected(input) {
     if (input.files[0]) {
-        if (input.files[0].size > 800 * 1024) {
-            toast('File too large! Max 800KB.', 'error');
+        if (input.files[0].size > 10 * 1024 * 1024) {
+            toast('File too large! Max 10MB.', 'error');
             input.value = '';
             return;
         }
+        const sizeMB = (input.files[0].size / (1024 * 1024)).toFixed(1);
         document.getElementById('proof-upload-icon').innerHTML = icon('checkCircle', 32);
-        document.getElementById('proof-upload-text').textContent = input.files[0].name;
+        document.getElementById('proof-upload-text').textContent = `${input.files[0].name} (${sizeMB}MB)`;
         document.getElementById('proof-upload-area').classList.add('has-file');
     }
 }
@@ -202,7 +208,7 @@ async function openSubmitProof(chalId) {
 
     const uploadIcon = document.getElementById('proof-upload-icon');
     uploadIcon.innerHTML = icon(chal.proofType === 'video' ? 'video' : 'camera', 32);
-    document.getElementById('proof-upload-text').textContent = 'Click to upload proof (max 800KB)';
+    document.getElementById('proof-upload-text').textContent = 'Click to upload proof (max 10MB)';
     document.getElementById('proof-upload-area').classList.remove('has-file');
     document.getElementById('proof-file').value = '';
     document.getElementById('proof-note').value = '';
@@ -218,18 +224,22 @@ async function submitProof() {
 
     if (!file) { toast('Please upload a file'); return; }
     
-    if (file.size > 800 * 1024) {
-        toast('File too large! Max 800KB for free tier.', 'error');
+    if (file.size > 10 * 1024 * 1024) {
+        toast('File too large! Max 10MB.', 'error');
         return;
     }
 
     const btn = document.querySelector('#submitProofModal .btn-primary');
     const originalHTML = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = `${icon('clock', 14)} Processing...`;
+    btn.innerHTML = `${icon('clock', 14)} Uploading...`;
 
     try {
-        const fileData = await fileToBase64(file);
+        // Upload to Cloudinary with progress
+        const result = await Cloudinary.upload(file, 'proofs', (pct) => {
+            btn.innerHTML = `${icon('clock', 14)} Uploading ${pct}%...`;
+        });
+
         const isVideo = file.type.startsWith('video/');
         
         const newProof = {
@@ -238,7 +248,7 @@ async function submitProof() {
             fromId: me.id,
             fileType: isVideo ? 'video' : 'image',
             fileName: file.name,
-            fileData: fileData,
+            fileUrl: result.url,
             note,
             date: new Date().toISOString().split('T')[0],
             approved: null
@@ -249,12 +259,15 @@ async function submitProof() {
         await DB.addChallenge(chal);
         await Gamification.awardCompletion(me.id, chal.difficulty, chal.category);
 
+        // Notify challenge creator
+        await Notifications.send(chal.creator, 'challenge_completed', { challengeName: chal.name });
+
         closeModal('submitProofModal');
         toast('Proof submitted!', 'success');
         renderPage(currentPage);
     } catch (error) {
         console.error("Proof submission error:", error);
-        toast("Failed to submit proof", "error");
+        toast(error.message || "Failed to submit proof", "error");
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalHTML;

@@ -18,15 +18,13 @@ firebase.initializeApp(firebaseConfig);
 // Shortcuts
 const auth = firebase.auth();
 const db = firebase.firestore();
-// Storage disabled - using Option B (Base64)
 
-// Enable persistence (offline support)
-db.enablePersistence().catch((err) => {
+// Enable persistence (offline support) — using newer API to avoid deprecation warning
+db.settings({ cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED });
+db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
     if (err.code == 'failed-precondition') {
-        // Multiple tabs open, persistence can only be enabled in one tab at a time.
         console.warn('Firebase persistence failed: Multiple tabs open');
     } else if (err.code == 'unimplemented') {
-        // The current browser does not support all of the features required to enable persistence
         console.warn('Firebase persistence is not supported by this browser');
     }
 });

@@ -43,11 +43,14 @@ async function initApp() {
 
         const me = Auth.me();
         
-        // Set user badge in header
+        // Set user badge in header (with profile image support)
         const userBadge = document.getElementById('user-badge-area');
         if (userBadge) {
+            const avatarInner = me.profileImage 
+                ? `<div class="avatar me" style="padding:0;overflow:hidden;"><img src="${me.profileImage}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>`
+                : `<div class="avatar me">${me.initials}</div>`;
             userBadge.innerHTML = `
-                <div class="avatar me">${me.initials}</div>
+                ${avatarInner}
                 <span class="user-name-text" style="font-size:0.85rem;font-weight:500;">${me.name.split(' ')[0]}</span>
             `;
         }
@@ -55,6 +58,9 @@ async function initApp() {
         // Set greeting
         const greet = document.getElementById('feed-greeting');
         if (greet) greet.textContent = me.name ? me.name.split(' ')[0] : 'Player';
+
+        // Start real-time notifications
+        Notifications.startListener(me.id);
 
         // Update stat cards
         const gameData = await DB.getGameData(me.id);

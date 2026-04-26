@@ -1,5 +1,5 @@
 /* ============================================
-   DAREVERSE — Profile Page (Firebase)
+   DAREVERSE — Profile Page (Firebase + Cloudinary)
    ============================================ */
 
 async function renderProfile() {
@@ -23,10 +23,19 @@ async function renderProfile() {
         return { name, ...badge, earned };
     });
 
+    // Profile avatar — image or initials
+    const avatarContent = me.profileImage 
+        ? `<img src="${me.profileImage}" alt="${me.name}" class="profile-img">`
+        : `<span>${me.initials}</span>`;
+
     container.innerHTML = `
     <!-- Profile Header -->
     <div class="card profile-header-card">
-      <div class="avatar lg me profile-avatar">${me.initials}</div>
+      <div class="profile-avatar-wrap" onclick="triggerProfileUpload()">
+        <div class="avatar lg me profile-avatar">${avatarContent}</div>
+        <div class="profile-avatar-overlay">${icon('camera', 20)}</div>
+        <input type="file" id="profile-img-input" accept="image/*" style="display:none" onchange="uploadProfileImage(this)">
+      </div>
       <div class="profile-info">
         <div class="profile-name">${me.name}</div>
         <div class="profile-sub">@${me.username} · Joined ${joinDate}</div>
@@ -87,4 +96,52 @@ async function renderProfile() {
       </div>
     </div>
   `;
+}
+
+function triggerProfileUpload() {
+    document.getElementById('profile-img-input').click();
+}
+
+async function uploadProfileImage(input) {
+    if (!input.files[0]) return;
+    const file = input.files[0];
+
+    if (!file.type.startsWith('image/')) {
+        toast('Please select an image file', 'error');
+        return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+        toast('Image too large! Max 5MB.', 'error');
+        return;
+    }
+
+    toast('Uploading profile image...', 'info');
+
+    try {
+        const url = await Cloudinary.uploadAvatar(file);
+        const me = Auth.me();
+
+        // Update Firestore user document
+        await db.collection('users').doc(me.id).update({ profileImage: url });
+
+        // Update local cached user data
+        me.profileImage = url;
+        DB.set(DB.MY_PROFILE, me);
+
+        // Update the header badge too
+        const userBadge = document.getElementById('user-badge-area');
+        if (userBadge) {
+            userBadge.innerHTML = `
+                <div class="avatar me" style="padding:0;overflow:hidden;"><img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
+                <span class="user-name-text" style="font-size:0.85rem;font-weight:500;">${me.name.split(' ')[0]}</span>
+            `;
+        }
+
+        toast('Profile image updated!', 'success');
+        renderProfile(); // Re-render to show the new image
+    } catch (err) {
+        console.error('Profile upload error:', err);
+        toast('Failed to upload image', 'error');
+    }
 }

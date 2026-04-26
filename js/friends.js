@@ -101,6 +101,7 @@ async function searchUsers(query) {
 async function sendFriendRequest(toId) {
     const me = Auth.me();
     await DB.sendRequest(me.id, toId);
+    await Notifications.send(toId, 'friend_request');
     toast('Friend request sent!', 'success');
     document.getElementById('friend-search').value = '';
     document.getElementById('search-results').innerHTML = '';
@@ -109,6 +110,7 @@ async function sendFriendRequest(toId) {
 async function acceptFriend(fromId) {
     const me = Auth.me();
     await DB.acceptRequest(me.id, fromId);
+    await Notifications.send(fromId, 'friend_accepted');
     toast('Friend request accepted!', 'success');
     renderFriends('requests');
 }
