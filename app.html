@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DareVerse — Challenge Hub</title>
+    <meta name="description" content="DareVerse — Challenge your friends, submit proofs, climb the leaderboard.">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/layout.css">
+
+    <!-- FIREBASE SDKS -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <!-- HEADER (Desktop Nav) -->
+    <header>
+        <div class="logo" onclick="showPage('feed')" style="cursor:pointer;">DAREVERSE</div>
+        <nav>
+            <button class="active" onclick="showPage('feed')" id="nav-feed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> <span>Feed</span></button>
+            <button onclick="showPage('challenges')" id="nav-challenges"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> <span>Challenges</span></button>
+            <button onclick="showPage('friends')" id="nav-friends"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> <span>Friends</span> <span class="notif-dot" id="friend-dot"></span></button>
+            <button onclick="showPage('proofs')" id="nav-proofs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg> <span>Inbox</span> <span class="notif-dot" id="proof-dot"></span></button>
+            <button onclick="showPage('leaderboard')" id="nav-leaderboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22"/><path d="M18 2H6v7a6 6 0 1012 0V2z"/></svg> <span>Ranks</span></button>
+            <button onclick="showPage('profile')" id="nav-profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4-4v2"/><circle cx="12" cy="7" r="4"/></svg> <span>Profile</span></button>
+        </nav>
+        <div class="user-badge" id="user-badge-area" onclick="showPage('profile')"></div>
+    </header>
+
+    <!-- BOTTOM NAV (Mobile) -->
+    <div class="bottom-nav">
+        <div class="bottom-nav-inner">
+            <button class="active" onclick="showPage('feed')" id="mob-feed">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span>Feed</span>
+            </button>
+            <button onclick="showPage('challenges')" id="mob-challenges">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                <span>Dares</span>
+            </button>
+            <button onclick="showPage('friends')" id="mob-friends">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                <span>Friends</span>
+                <span class="mob-notif" id="mob-friend-dot"></span>
+            </button>
+            <button onclick="showPage('leaderboard')" id="mob-leaderboard">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22"/><path d="M18 2H6v7a6 6 0 1012 0V2z"/></svg>
+                <span>Ranks</span>
+            </button>
+            <button onclick="showPage('profile')" id="mob-profile">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4-4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span>Profile</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <main>
+        <!-- FEED PAGE -->
+        <div class="page active" id="page-feed">
+            <div class="page-header">
+                <div>
+                    <div class="section-title">Hey <span id="feed-greeting">Player</span></div>
+                    <p style="color:var(--muted);font-size:0.9rem;margin-top:-1rem;">What challenge will you conquer today?</p>
+                </div>
+                <button class="btn btn-primary" onclick="openModal('createChallengeModal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Create Challenge</button>
+            </div>
+
+            <div class="grid-3 stat-row-mobile" style="margin-bottom:1.5rem;">
+                <div class="stat-card"><div class="stat-val" id="stat-completed">0</div><div class="stat-label">CHALLENGES COMPLETED</div></div>
+                <div class="stat-card"><div class="stat-val" id="stat-created">0</div><div class="stat-label">CHALLENGES CREATED</div></div>
+                <div class="stat-card"><div class="stat-val" style="color:var(--neon);" id="stat-friends">0</div><div class="stat-label">FRIENDS</div></div>
+            </div>
+
+            <div class="tabs" style="margin-bottom:1.25rem;">
+                <button class="tab active" onclick="switchFeedTab('all',this)">All Activity</button>
+                <button class="tab" onclick="switchFeedTab('sent',this)">Sent to You</button>
+                <button class="tab" onclick="switchFeedTab('mine',this)">Your Challenges</button>
+            </div>
+
+            <div id="feed-list"></div>
+        </div>
+
+        <!-- CHALLENGES PAGE -->
+        <div class="page" id="page-challenges">
+            <div class="page-header">
+                <div class="section-title">My <span>Challenges</span></div>
+                <button class="btn btn-primary" onclick="openModal('createChallengeModal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Create</button>
+            </div>
+            <div class="tabs">
+                <button class="tab active" onclick="switchChalTab('created',this)">Created by Me</button>
+                <button class="tab" onclick="switchChalTab('pending',this)">Pending</button>
+                <button class="tab" onclick="switchChalTab('completed',this)">Completed</button>
+            </div>
+            <div id="chal-list"></div>
+        </div>
+
+        <!-- FRIENDS PAGE -->
+        <div class="page" id="page-friends">
+            <div class="section-title">Friends <span>&amp;</span> Requests</div>
+            <div class="tabs">
+                <button class="tab active" onclick="switchFriendTab('friends',this)">My Friends</button>
+                <button class="tab" onclick="switchFriendTab('requests',this)">Requests <span class="notif-dot"></span></button>
+                <button class="tab" onclick="switchFriendTab('discover',this)">Discover</button>
+            </div>
+            <div id="friend-list"></div>
+        </div>
+
+        <!-- PROOFS INBOX PAGE -->
+        <div class="page" id="page-proofs">
+            <div class="section-title">Proof <span>Inbox</span></div>
+            <p style="color:var(--muted);font-size:0.875rem;margin-top:-1rem;margin-bottom:1.5rem;">Proofs submitted for your challenges</p>
+            <div id="proof-list"></div>
+        </div>
+
+        <!-- LEADERBOARD PAGE -->
+        <div class="page" id="page-leaderboard">
+            <div class="section-title"><span>Leaderboard</span></div>
+            <div class="tabs">
+                <button class="tab active" onclick="switchLbTab('friends',this)">Friends Circle</button>
+                <button class="tab" onclick="switchLbTab('global',this)">Global</button>
+            </div>
+            <div id="lb-list"></div>
+        </div>
+
+        <!-- PROFILE PAGE -->
+        <div class="page" id="page-profile">
+            <div class="section-title">My <span>Profile</span></div>
+            <div id="profile-content"></div>
+        </div>
+    </main>
+
+    <!-- CREATE CHALLENGE MODAL -->
+    <div class="modal-overlay" id="createChallengeModal">
+        <div class="modal">
+            <div class="modal-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px;color:var(--accent);"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> New Challenge</div>
+
+            <div class="form-group">
+                <label>Challenge Name</label>
+                <input type="text" id="chal-name" placeholder="e.g. 100 Push-ups in 5 mins">
+            </div>
+            <div class="form-group">
+                <label>Description / How to Complete</label>
+                <textarea id="chal-desc" placeholder="Describe exactly how to complete this challenge..."></textarea>
+            </div>
+            <div class="form-group" style="position:relative;">
+                <label>Send to Friends (type @ to tag)</label>
+                <div class="tag-input-wrap" id="tag-wrap" onclick="document.getElementById('tag-raw').focus()">
+                    <div id="tag-chips"></div>
+                    <input type="text" id="tag-raw" placeholder="@username" autocomplete="off" oninput="tagInput(this.value)" onkeydown="tagKeyDown(event)">
+                </div>
+                <div class="tag-suggestions" id="tag-sugg"></div>
+            </div>
+            <div class="form-group">
+                <label>Difficulty</label>
+                <select id="chal-diff">
+                    <option value="easy">Easy (+10 pts)</option>
+                    <option value="medium" selected>Medium (+25 pts)</option>
+                    <option value="hard">Hard (+50 pts)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Deadline (optional)</label>
+                <input type="date" id="chal-deadline" min="">
+                <div style="font-size:0.72rem;color:var(--muted);margin-top:0.25rem;">If set, participants must submit proof before this date or the challenge expires.</div>
+            </div>
+            <div class="form-group">
+                <label>Proof Format Required</label>
+                <select id="chal-proof">
+                    <option value="image">Image Only</option>
+                    <option value="video">Video Only</option>
+                    <option value="both">Image or Video</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select id="chal-cat">
+                    <option value="fitness">Fitness</option>
+                    <option value="gaming">Gaming</option>
+                    <option value="food">Food</option>
+                    <option value="creative">Creative</option>
+                    <option value="brain">Brain</option>
+                    <option value="outdoor">Outdoor</option>
+                    <option value="funny">Funny</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeModal('createChallengeModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="createChallenge()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Send Challenge</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUBMIT PROOF MODAL -->
+    <div class="modal-overlay" id="submitProofModal">
+        <div class="modal">
+            <div class="modal-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px;color:var(--accent);"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg> Submit Proof</div>
+            <div id="proof-chal-info" style="margin-bottom:1.25rem;"></div>
+            <div class="form-group">
+                <label>Upload Proof (max 800KB)</label>
+                <div class="upload-area" id="proof-upload-area" onclick="document.getElementById('proof-file').click()">
+                    <div id="proof-upload-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:32px;height:32px;color:var(--muted);margin:0 auto;"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg></div>
+                    <div class="upload-text" id="proof-upload-text">Click to upload proof</div>
+                    <div style="font-size:0.75rem;color:var(--muted);margin-top:0.3rem;" id="proof-format-note"></div>
+                </div>
+                <input type="file" id="proof-file" style="display:none" accept="image/*,video/*" onchange="fileSelected(this)">
+            </div>
+            <div class="form-group">
+                <label>Optional Note</label>
+                <input type="text" id="proof-note" placeholder="Any notes about your attempt...">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeModal('submitProofModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="submitProof()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW PROOF MODAL -->
+    <div class="modal-overlay" id="viewProofModal">
+        <div class="modal">
+            <div class="modal-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:24px;height:24px;color:var(--accent);"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View Proof</div>
+            <div id="view-proof-content"></div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeModal('viewProofModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- SCRIPTS -->
+    <script src="js/icons.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/gamification.js"></script>
+    <script src="js/feed.js"></script>
+    <script src="js/challenges.js"></script>
+    <script src="js/friends.js"></script>
+    <script src="js/proofs.js"></script>
+    <script src="js/leaderboard.js"></script>
+    <script src="js/profile.js"></script>
+    <script src="js/router.js"></script>
+    <script>
+        // Boot app
+        initApp();
+        // Set min date for deadline to today
+        const deadlineInput = document.getElementById('chal-deadline');
+        if (deadlineInput) {
+            deadlineInput.min = new Date().toISOString().split('T')[0];
+        }
+    </script>
+</body>
+</html>

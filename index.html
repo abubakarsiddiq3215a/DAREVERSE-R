@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DareVerse — Login</title>
+    <meta name="description" content="DareVerse — Challenge your friends, prove your skills, rise the ranks.">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/login.css">
+    
+    <!-- FIREBASE SDKS -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <div class="login-bg"></div>
+
+    <div class="login-page">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-logo">
+                    <h1>DAREVERSE</h1>
+                    <p>Challenge friends. Prove yourself. Rise up.</p>
+                </div>
+
+                <div class="login-error" id="login-error">
+                    <span id="login-error-msg">Invalid credentials</span>
+                </div>
+
+                <form class="login-form" id="login-form" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="login-username">Username</label>
+                        <input type="text" id="login-username" placeholder="Enter your username" autocomplete="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" placeholder="Enter your password (min 6 chars)" autocomplete="current-password" required minlength="6">
+                    </div>
+                    <button type="submit" class="login-btn" id="login-submit-btn">Sign In</button>
+                </form>
+
+                <div class="login-footer">
+                    Don't have an account? <a href="#" onclick="toggleRegister(event)">Sign Up</a>
+                </div>
+
+                <!-- Register form (hidden by default) -->
+                <form class="login-form hidden" id="register-form" onsubmit="handleRegister(event)">
+                    <div class="form-group">
+                        <label for="reg-name">Full Name</label>
+                        <input type="text" id="reg-name" placeholder="Enter your full name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-username">Username</label>
+                        <input type="text" id="reg-username" placeholder="Choose a username" autocomplete="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-password">Password</label>
+                        <input type="password" id="reg-password" placeholder="Choose a password (min 6 chars)" autocomplete="new-password" required minlength="6">
+                    </div>
+                    <button type="submit" class="login-btn">Create Account</button>
+                </form>
+
+                <div class="login-footer hidden" id="register-footer">
+                    Already have an account? <a href="#" onclick="toggleRegister(event)">Sign In</a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="js/icons.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        // BUG FIX: Use Firebase auth state listener instead of sync check
+        // Auth.isLoggedIn() doesn't work at page load because Firebase is async
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                window.location.href = 'app.html';
+            }
+        });
+
+        let isRegisterMode = false;
+
+        function toggleRegister(e) {
+            e.preventDefault();
+            isRegisterMode = !isRegisterMode;
+            document.getElementById('login-form').classList.toggle('hidden', isRegisterMode);
+            document.getElementById('register-form').classList.toggle('hidden', !isRegisterMode);
+            document.querySelector('.login-footer').classList.toggle('hidden', isRegisterMode);
+            document.getElementById('register-footer').classList.toggle('hidden', !isRegisterMode);
+            document.getElementById('login-error').classList.remove('show');
+        }
+
+        // BUG FIX: Made async — Auth.login() returns a Promise
+        async function handleLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('login-submit-btn');
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            btn.disabled = true;
+            btn.textContent = 'Signing in...';
+
+            const result = await Auth.login(username, password);
+            if (result.success) {
+                window.location.href = 'app.html';
+            } else {
+                document.getElementById('login-error-msg').textContent = result.error;
+                document.getElementById('login-error').classList.add('show');
+                btn.disabled = false;
+                btn.textContent = 'Sign In';
+            }
+        }
+
+        // BUG FIX: Made async — Auth.register() returns a Promise
+        async function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('reg-name').value.trim();
+            const username = document.getElementById('reg-username').value.trim();
+            const password = document.getElementById('reg-password').value;
+
+            if (!name || !username || !password) return;
+
+            const result = await Auth.register(username, password, name);
+            if (result.success) {
+                window.location.href = 'app.html';
+            } else {
+                document.getElementById('login-error-msg').textContent = result.error;
+                document.getElementById('login-error').classList.add('show');
+            }
+        }
+    </script>
+</body>
+</html>
