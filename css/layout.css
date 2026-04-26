@@ -122,6 +122,13 @@ main {
     flex-wrap: wrap;
 }
 
+.chall-header-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
 /* BOTTOM NAV (mobile) - hidden on desktop */
 .bottom-nav {
     display: none;
@@ -207,6 +214,20 @@ main {
 
     .page-header { flex-direction: column; align-items: flex-start; }
     .page-header .btn { width: 100%; justify-content: center; }
+
+    #page-challenges .page-header {
+        align-items: center;
+    }
+
+    #page-challenges .chall-header-actions {
+        width: 100%;
+        justify-content: center;
+    }
+
+    #page-challenges .chall-header-actions .btn {
+        width: auto;
+        min-width: 132px;
+    }
 
     /* Modal as bottom sheet on mobile */
     .modal-overlay { align-items: flex-end; padding: 0; }
