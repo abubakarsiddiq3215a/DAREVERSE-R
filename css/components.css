@@ -704,3 +704,119 @@ label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0
 @media (hover: none) {
     .profile-avatar-overlay { opacity: 0.6; }
 }
+
+/* =============================
+   NOTIFICATION REMOVE BUTTON
+   ============================= */
+.notif-remove-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+    opacity: 0.4;
+    display: flex;
+    align-items: center;
+}
+.notif-remove-btn:hover { opacity: 1; color: var(--accent); background: rgba(255,60,111,0.1); }
+.notif-item:hover .notif-remove-btn { opacity: 0.8; }
+
+/* =============================
+   HELP / RULES MODAL
+   ============================= */
+.help-section {
+    margin-bottom: 1.25rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border);
+}
+.help-section:last-of-type { border-bottom: none; }
+.help-heading {
+    font-weight: 700;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    color: var(--accent);
+}
+.help-heading svg { flex-shrink: 0; color: var(--accent); }
+.help-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.help-list li {
+    font-size: 0.82rem;
+    line-height: 1.6;
+    padding: 0.3rem 0;
+    padding-left: 1.25rem;
+    position: relative;
+    color: var(--text2);
+}
+.help-list li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: 700;
+}
+.help-list li strong { color: var(--text); }
+
+/* Ranking Grid */
+.help-ranks-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.help-rank-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--bg3);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-md);
+    flex: 1;
+    min-width: 130px;
+}
+.help-rank-pts {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-left: auto;
+    font-weight: 600;
+}
+
+/* Badge Grid */
+.help-badges-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+.help-badge-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--bg3);
+    padding: 0.6rem 0.75rem;
+    border-radius: var(--radius-md);
+    font-size: 0.82rem;
+}
+.help-badge-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-full);
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.help-badge-icon svg { width: 22px; height: 22px; }
+
+@media (max-width: 480px) {
+    .help-badges-grid { grid-template-columns: 1fr; }
+    .help-rank-item { min-width: 100%; }
+    .help-badge-item { font-size: 0.78rem; }
+}

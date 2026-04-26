@@ -7,7 +7,7 @@ const Notifications = {
     unreadCount: 0,
 
     /**
-     * Start listening for real-time notification
+     * Start listening for real-time notifications
      */
     startListener(userId) {
         if (this.unsubscribe) this.unsubscribe(); // Clean up previous
@@ -25,7 +25,7 @@ const Notifications = {
                 this.unreadCount = unread;
                 this.updateBadge();
 
-                // Show toast for new real-time notification
+                // Show toast for new real-time notifications
                 snapshot.docChanges().forEach(change => {
                     if (change.type === 'added') {
                         const n = change.doc.data();
@@ -117,7 +117,7 @@ const Notifications = {
             panel.innerHTML = `
             <div style="text-align:center;padding:2rem;color:var(--muted);">
                 ${icon('bell', 32)}
-                <div style="margin-top:0.5rem;font-size:0.85rem;">No notification yet</div>
+                <div style="margin-top:0.5rem;font-size:0.85rem;">No notifications yet</div>
             </div>`;
             return;
         }
@@ -125,7 +125,10 @@ const Notifications = {
         panel.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 1rem;border-bottom:1px solid var(--border);">
             <span style="font-weight:600;font-size:0.9rem;">Notifications</span>
-            <button class="btn btn-xs btn-ghost" onclick="Notifications.markAllRead()">Mark all read</button>
+            <div style="display:flex;gap:0.4rem;">
+                <button class="btn btn-xs btn-ghost" onclick="Notifications.markAllRead()">Mark all read</button>
+                <button class="btn btn-xs btn-ghost" style="color:var(--accent);" onclick="Notifications.clearAll()">Clear all</button>
+            </div>
         </div>
         ${notifs.map(n => this.notifItemHTML(n)).join('')}`;
     },
@@ -167,13 +170,14 @@ const Notifications = {
         const time = n.timestamp ? formatDate(n.timestamp) : '';
 
         return `
-        <div class="notif-item" style="${unread}" onclick="Notifications.markRead('${n.id}')">
+        <div class="notif-item" style="${unread}">
             <div class="notif-icon" style="color:${color};">${icon(ic, 18)}</div>
-            <div class="notif-body">
+            <div class="notif-body" onclick="Notifications.markRead('${n.id}')">
                 <div class="notif-msg">${msg}</div>
                 <div class="notif-time">${time}</div>
             </div>
             ${!n.read ? '<div class="notif-unread-dot"></div>' : ''}
+            <button class="notif-remove-btn" onclick="Notifications.remove('${n.id}')" title="Remove">${icon('x', 14)}</button>
         </div>`;
     },
 
@@ -181,7 +185,7 @@ const Notifications = {
      * Mark a single notification as read
      */
     async markRead(notifId) {
-        await db.collection('notifications').doc(notifId).update({ read: true });
+        await db.collection('notification').doc(notifId).update({ read: true });
     },
 
     /**
@@ -189,7 +193,7 @@ const Notifications = {
      */
     async markAllRead() {
         const me = Auth.me();
-        const snapshot = await db.collection('notifications')
+        const snapshot = await db.collection('notification')
             .where('to', '==', me.id)
             .where('read', '==', false)
             .get();
@@ -199,7 +203,34 @@ const Notifications = {
             batch.update(doc.ref, { read: true });
         });
         await batch.commit();
-        toast('All notifications marked as read', 'info');
+        toast('All marked as read', 'info');
+        this.renderPanel();
+    },
+
+    /**
+     * Remove a single notification
+     */
+    async remove(notifId) {
+        await db.collection('notification').doc(notifId).delete();
+        toast('Notification removed');
+        this.renderPanel();
+    },
+
+    /**
+     * Clear all notifications
+     */
+    async clearAll() {
+        const me = Auth.me();
+        const snapshot = await db.collection('notification')
+            .where('to', '==', me.id)
+            .get();
+
+        const batch = db.batch();
+        snapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit();
+        toast('All notifications cleared', 'info');
         this.renderPanel();
     },
 

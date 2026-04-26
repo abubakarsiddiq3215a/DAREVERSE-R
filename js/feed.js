@@ -53,7 +53,7 @@ function challengeCardHTML(c, userMap, proofs) {
     const isMyChallenge = c.creator === me.id;
     const myStatus = c.status[me.id];
     const targets = c.targets.map(t => userMap[t]).filter(Boolean);
-    const completedCount = Object.values(c.status).filter(s => s === 'completed').length;
+    const completedCount = Object.values(c.status).filter(s => s === 'completed' || s === 'approved').length;
     const total = c.targets.length;
     const catIcon = getCategoryIcon(c.category);
     const isExpired = myStatus === 'expired';
