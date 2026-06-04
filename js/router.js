@@ -60,8 +60,8 @@ async function showPage(name) {
     if (pageTransitionTimer) {
         clearTimeout(pageTransitionTimer);
 
-    const activePage = document.getElementById('page-' + name);
-    animatePageContent(activePage);
+        const activePage = document.getElementById('page-' + name);
+        animatePageContent(activePage);
 
         pageTransitionTimer = null;
     }
@@ -166,58 +166,97 @@ async function initApp() {
     Auth.initAuthListener(async (user) => {
         if (!user) return; // Auth.js will redirect to login
 
-        const me = Auth.me();
-        
-        // Set user badge in header (with profile image support)
-        const userBadge = document.getElementById('user-badge-area');
-        if (userBadge) {
-            const avatarInner = me.profileImage 
-                ? `<div class="avatar me" style="padding:0;overflow:hidden;"><img src="${me.profileImage}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>`
-                : `<div class="avatar me">${me.initials}</div>`;
-            userBadge.innerHTML = `
-                ${avatarInner}
-                <span class="user-name-text" style="font-size:0.85rem;font-weight:500;">${me.name.split(' ')[0]}</span>
-            `;
+        try {
+            const me = Auth.me();
+            if (!me) {
+                console.warn('Auth listener: no profile cached for user', user && user.uid);
+                return;
+            }
+
+            // Set user badge in header (with profile image support)
+            const userBadge = document.getElementById('user-badge-area');
+            if (userBadge) {
+                const avatarInner = me.profileImage
+                    ? `<div class="avatar me" style="padding:0;overflow:hidden;"><img src="${me.profileImage}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>`
+                    : `<div class="avatar me">${me.initials}</div>`;
+                userBadge.innerHTML = `
+                    ${avatarInner}
+                    <span class="user-name-text" style="font-size:0.85rem;font-weight:500;">${me.name.split(' ')[0]}</span>
+                `;
+            }
+
+            // Set greeting
+            const greet = document.getElementById('feed-greeting');
+            if (greet) greet.textContent = me.name ? me.name.split(' ')[0] : 'Player';
+
+            const adminBtn = document.getElementById('admin-launch-btn');
+            if (adminBtn) {
+                const canOpenAdmin = await isCurrentUserAdmin();
+                adminBtn.style.display = canOpenAdmin ? '' : 'none';
+            }
+
+            // Start real-time notifications
+            Notifications.startListener(me.id);
+
+            // Update stat cards
+            const el = (id) => document.getElementById(id);
+            let gameData = {};
+            try {
+                gameData = await DB.getGameData(me.id);
+            } catch (err) {
+                console.error('DB.getGameData failed:', err);
+            }
+            if (el('stat-completed')) el('stat-completed').textContent = (gameData && gameData.totalCompleted) || 0;
+            if (el('stat-created')) el('stat-created').textContent = (gameData && gameData.totalCreated) || 0;
+
+            let friends = [];
+            try {
+                friends = await DB.getFriends(me.id);
+            } catch (err) {
+                console.error('DB.getFriends failed:', err);
+            }
+            if (el('stat-friends')) el('stat-friends').textContent = friends.length;
+
+            // Check notification dots
+            let requests = [];
+            try {
+                requests = await DB.getRequests(me.id);
+            } catch (err) {
+                console.error('DB.getRequests failed:', err);
+            }
+            hideDotIfEmpty('friend-dot', requests.length);
+            hideDotIfEmpty('mob-friend-dot', requests.length);
+
+            let proofs = [];
+            let challenges = [];
+            try {
+                proofs = await DB.getProofs();
+            } catch (err) {
+                console.error('DB.getProofs failed:', err);
+            }
+            try {
+                challenges = await DB.getChallenges();
+            } catch (err) {
+                console.error('DB.getChallenges failed:', err);
+            }
+            const pendingProofs = proofs.filter(p => {
+                const chal = challenges.find(c => c.id === p.chalId);
+                return chal && chal.creator === me.id && p.approved === null && p.fromId !== me.id;
+            });
+            hideDotIfEmpty('proof-dot', pendingProofs.length);
+            hideDotIfEmpty('mob-proof-dot', pendingProofs.length);
+
+            initModals();
+
+            await showPage('feed');
+        } catch (error) {
+            console.error('initApp: Error while initializing user data:', error);
+            // If it's a Firestore permission error, redirect to login and surface a friendly message
+            if (error && error.code === 'permission-denied') {
+                alert('Permission error when accessing database - please check your Firebase rules or sign-in status.');
+                try { await auth.signOut(); } catch (e) { }
+                window.location.href = 'index.html';
+            }
         }
-
-        // Set greeting
-        const greet = document.getElementById('feed-greeting');
-        if (greet) greet.textContent = me.name ? me.name.split(' ')[0] : 'Player';
-
-        const adminBtn = document.getElementById('admin-launch-btn');
-        if (adminBtn) {
-            const canOpenAdmin = await isCurrentUserAdmin();
-            adminBtn.style.display = canOpenAdmin ? '' : 'none';
-        }
-
-        // Start real-time notifications
-        Notifications.startListener(me.id);
-
-        // Update stat cards
-        const gameData = await DB.getGameData(me.id);
-        const el = (id) => document.getElementById(id);
-        if (el('stat-completed')) el('stat-completed').textContent = gameData.totalCompleted || 0;
-        if (el('stat-created')) el('stat-created').textContent = gameData.totalCreated || 0;
-        
-        const friends = await DB.getFriends(me.id);
-        if (el('stat-friends')) el('stat-friends').textContent = friends.length;
-
-        // Check notification dots
-        const requests = await DB.getRequests(me.id);
-        hideDotIfEmpty('friend-dot', requests.length);
-        hideDotIfEmpty('mob-friend-dot', requests.length);
-
-        const proofs = await DB.getProofs();
-        const challenges = await DB.getChallenges();
-        const pendingProofs = proofs.filter(p => {
-            const chal = challenges.find(c => c.id === p.chalId);
-            return chal && chal.creator === me.id && p.approved === null && p.fromId !== me.id;
-        });
-        hideDotIfEmpty('proof-dot', pendingProofs.length);
-        hideDotIfEmpty('mob-proof-dot', pendingProofs.length);
-
-        initModals();
-
-        await showPage('feed');
     });
 }
