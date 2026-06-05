@@ -12,6 +12,13 @@ service cloud.firestore {
       allow delete: if false; // Never delete user profiles via client
     }
 
+    // ── ADMINS ─────────────────────────────────────────────────────────────
+    // Any authenticated user can read admin lookup
+    match /admins/{adminId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
     // ── CHALLENGES ─────────────────────────────────────────────────────────
     // Any authenticated user can read challenges (needed for feed / public challenges)
     // Only the creator can create / delete their challenge
