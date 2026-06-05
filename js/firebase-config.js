@@ -18,11 +18,5 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Enable offline persistence
-db.enablePersistence().catch((err) => {
-    if (err.code === 'failed-precondition') {
-        console.warn('Firebase persistence failed: Multiple tabs open. Falling back to memory cache.');
-    } else if (err.code === 'unimplemented') {
-        console.warn('Firebase persistence is not supported by this browser.');
-    }
-});
+// Offline persistence is disabled to avoid deprecation warnings from the Firebase v10 compat SDK.
+// If offline support is needed in the future, we recommend migrating to the modern modular SDK.
