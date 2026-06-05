@@ -8,12 +8,29 @@ async function renderFeed(tab) {
 
     list.innerHTML = `<div style="text-align:center;padding:2rem;">${icon('clock', 32)}<div style="margin-top:0.5rem;color:var(--muted);">Loading feed...</div></div>`;
 
-    const challenges = await DB.getChallenges();
-    const allUsers = await DB.getUsers();
+    let challenges = [], allUsers = [], proofs = [], friendIds = [];
+    try {
+        challenges = await DB.getChallenges();
+        allUsers = await DB.getUsers();
+        proofs = await DB.getProofs();
+        friendIds = await DB.getFriends(me.id);
+    } catch (err) {
+        console.error('Feed load error:', err);
+        if (err && err.code === 'permission-denied') {
+            list.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--muted);">
+                ${icon('xCircle', 32)}
+                <div style="margin-top:0.75rem;font-weight:600;">Access Denied</div>
+                <div style="font-size:0.85rem;margin-top:0.3rem;">Please sign out and sign in again. If the issue persists, contact support.</div>
+                <button class="btn btn-primary" style="margin-top:1rem;" onclick="Auth.logout()">Sign Out &amp; Try Again</button>
+            </div>`;
+        } else {
+            list.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--muted);">${icon('alertCircle', 32)}<div style="margin-top:0.5rem;">Error loading feed. Please refresh.</div></div>`;
+        }
+        return;
+    }
+
     const userMap = {};
     allUsers.forEach(u => userMap[u.id] = u);
-    const proofs = await DB.getProofs();
-    const friendIds = await DB.getFriends(me.id);
 
     let items = [];
 

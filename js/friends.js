@@ -8,9 +8,16 @@ async function renderFriends(tab) {
     
     list.innerHTML = `<div style="text-align:center;padding:2rem;">${icon('clock', 32)}</div>`;
 
-    const friendIds = await DB.getFriends(me.id);
-    const requests = await DB.getRequests(me.id);
-    const allUsers = await DB.getUsers();
+    let friendIds = [], requests = [], allUsers = [];
+    try {
+        friendIds = await DB.getFriends(me.id);
+        requests = await DB.getRequests(me.id);
+        allUsers = await DB.getUsers();
+    } catch (err) {
+        console.error('Friends load error:', err);
+        list.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--muted);">${icon('alertCircle', 32)}<div style="margin-top:0.5rem;">Error loading friends. Please refresh.</div></div>`;
+        return;
+    }
 
     if (tab === 'friends') {
         const friends = allUsers.filter(u => friendIds.includes(u.id));

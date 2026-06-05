@@ -8,8 +8,24 @@ async function renderLeaderboard(tab) {
 
     list.innerHTML = `<div style="text-align:center;padding:2rem;">${icon('clock', 32)}<div style="margin-top:0.5rem;color:var(--muted);">Loading rankings...</div></div>`;
 
-    const friendIds = await DB.getFriends(me.id);
-    const allUsers = await DB.getUsers();
+    let friendIds = [], allUsers = [];
+    try {
+        friendIds = await DB.getFriends(me.id);
+        allUsers = await DB.getUsers();
+    } catch (err) {
+        console.error('Leaderboard load error:', err);
+        if (err && err.code === 'permission-denied') {
+            list.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--muted);">
+                ${icon('xCircle', 32)}
+                <div style="margin-top:0.75rem;font-weight:600;">Access Denied</div>
+                <div style="font-size:0.85rem;margin-top:0.3rem;">Please sign out and sign in again.</div>
+                <button class="btn btn-primary" style="margin-top:1rem;" onclick="Auth.logout()">Sign Out &amp; Try Again</button>
+            </div>`;
+        } else {
+            list.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--muted);">${icon('alertCircle', 32)}<div style="margin-top:0.5rem;">Error loading leaderboard. Please refresh.</div></div>`;
+        }
+        return;
+    }
 
     let players = [];
 
@@ -18,7 +34,12 @@ async function renderLeaderboard(tab) {
         // Friends tab: show me + friends only. Global tab: show ALL users.
         if (tab === 'friends' && !isMe && !friendIds.includes(u.id)) continue;
 
-        const gd = await DB.getGameData(u.id);
+        let gd = { rankPoints: 0, totalCompleted: 0, currentStreak: 0 };
+        try {
+            gd = await DB.getGameData(u.id);
+        } catch (e) {
+            console.warn('Could not load game data for', u.id, e);
+        }
         players.push({
             id: u.id,
             name: u.name,
