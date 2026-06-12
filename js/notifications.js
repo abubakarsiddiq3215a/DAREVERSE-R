@@ -14,8 +14,6 @@ const Notifications = {
 
         this.unsubscribe = db.collection('notification')
             .where('to', '==', userId)
-            .orderBy('timestamp', 'desc')
-            .limit(30)
             .onSnapshot((snapshot) => {
                 // Count unread
                 let unread = 0;
@@ -33,6 +31,25 @@ const Notifications = {
                         const ts = n.timestamp ? new Date(n.timestamp).getTime() : 0;
                         if (Date.now() - ts < 5000) {
                             this.showToast(n);
+
+                            // Real-time friend request updates
+                            if (n.type === 'friend_request') {
+                                DB.clearCache('requests');
+                                DB.getRequests(userId, true).then(reqs => {
+                                    hideDotIfEmpty('friend-dot', reqs.length);
+                                    hideDotIfEmpty('mob-friend-dot', reqs.length);
+                                    const tabDot = document.getElementById('tab-friend-requests-dot');
+                                    if (tabDot) {
+                                        tabDot.style.display = reqs.length > 0 ? 'inline-block' : 'none';
+                                    }
+                                    if (currentPage === 'friends' && typeof renderFriends === 'function') {
+                                        const activeTab = document.querySelector('#page-friends .tab.active');
+                                        if (activeTab && activeTab.textContent.includes('Requests')) {
+                                            renderFriends('requests');
+                                        }
+                                    }
+                                }).catch(err => console.error('Real-time request dot update failed:', err));
+                            }
                         }
                     }
                 });
@@ -113,13 +130,20 @@ const Notifications = {
 
         panel.innerHTML = `<div style="text-align:center;padding:1.5rem;">${icon('clock', 24)}</div>`;
 
-        const snapshot = await db.collection('notification')
-            .where('to', '==', me.id)
-            .orderBy('timestamp', 'desc')
-            .limit(20)
-            .get();
+        let notifs = [];
+        try {
+            const snapshot = await db.collection('notification')
+                .where('to', '==', me.id)
+                .get();
 
-        const notifs = snapshot.docs.map(d => d.data());
+            notifs = snapshot.docs.map(d => d.data());
+            // Sort in memory by timestamp descending to avoid composite index requirement
+            notifs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            // Limit to 20
+            notifs = notifs.slice(0, 20);
+        } catch (err) {
+            console.error('Failed to load notifications for panel:', err);
+        }
 
         if (!notifs.length) {
             panel.innerHTML = `

@@ -19,6 +19,12 @@ async function renderFriends(tab) {
         return;
     }
 
+    // Toggle the red dot on the Requests tab based on pending requests
+    const tabDot = document.getElementById('tab-friend-requests-dot');
+    if (tabDot) {
+        tabDot.style.display = requests.length > 0 ? 'inline-block' : 'none';
+    }
+
     if (tab === 'friends') {
         const friends = allUsers.filter(u => friendIds.includes(u.id));
         list.innerHTML = `<div style="margin-top:1rem;">${friends.length ? friends.map(f => friendCardHTML(f, 'friend')).join('') : emptyState('No friends yet. Search and add some!')}</div>`;
@@ -129,6 +135,7 @@ async function acceptFriend(fromId) {
 async function rejectFriend(fromId) {
     const me = Auth.me();
     await db.collection('social').doc(me.id).collection('requests').doc(fromId).delete();
+    DB.clearCache('requests'); // Bug fix: Clear local cache to retrieve fresh requests
     toast('Request removed');
     renderFriends('requests');
 }

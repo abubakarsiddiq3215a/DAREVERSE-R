@@ -126,7 +126,52 @@ const Auth = {
         auth.onAuthStateChanged(async (user) => {
             if (user) {
                 // User is signed in
-                await DB.syncMyProfile(user.uid);
+                let profile = await DB.syncMyProfile(user.uid);
+                if (!profile) {
+                    // Profile does not exist in Firestore! Let's auto-heal/create it now.
+                    const username = user.email ? user.email.split('@')[0] : 'player';
+                    const fullName = user.displayName || username.charAt(0).toUpperCase() + username.slice(1);
+                    const initials = DB.getInitials(fullName);
+                    const profileData = {
+                        id: user.uid,
+                        uid: user.uid,
+                        username: username.toLowerCase(),
+                        name: fullName,
+                        initials: initials,
+                        email: user.email,
+                        joinDate: new Date().toISOString()
+                    };
+                    try {
+                        await db.collection('users').doc(user.uid).set(profileData);
+                        profile = await DB.syncMyProfile(user.uid);
+                    } catch (e) {
+                        console.error("Failed to auto-heal profile:", e);
+                    }
+                }
+
+                // Check and auto-heal gamification data if missing
+                let gameData = null;
+                try {
+                    gameData = await DB.getGameData(user.uid);
+                } catch (e) {}
+                if (!gameData || gameData.rankPoints === undefined) {
+                    const initialGameData = {
+                        rankPoints: 0,
+                        currentStreak: 0,
+                        longestStreak: 0,
+                        lastChallengeDate: null,
+                        badges: [],
+                        completedByCategory: {},
+                        totalCompleted: 0,
+                        totalCreated: 0
+                    };
+                    try {
+                        await db.collection('gamification').doc(user.uid).set(initialGameData);
+                    } catch (e) {
+                        console.error("Failed to auto-heal gamification:", e);
+                    }
+                }
+
                 if (callback) callback(user);
             } else {
                 // User is signed out

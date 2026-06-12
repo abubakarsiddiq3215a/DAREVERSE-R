@@ -77,10 +77,11 @@
     <script src="js/data.js"></script>
     <script src="js/auth.js"></script>
     <script>
-        // BUG FIX: Use Firebase auth state listener instead of sync check
-        // Auth.isLoggedIn() doesn't work at page load because Firebase is async
+        // Check if we are currently logging in or registering to prevent race conditions
+        let isAuthSubmitting = false;
+
         auth.onAuthStateChanged((user) => {
-            if (user) {
+            if (user && !isAuthSubmitting) {
                 window.location.href = 'app.html';
             }
         });
@@ -100,6 +101,7 @@
         // BUG FIX: Made async — Auth.login() returns a Promise
         async function handleLogin(e) {
             e.preventDefault();
+            isAuthSubmitting = true;
             const btn = document.getElementById('login-submit-btn');
             const username = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value;
@@ -111,6 +113,7 @@
             if (result.success) {
                 window.location.href = 'app.html';
             } else {
+                isAuthSubmitting = false;
                 document.getElementById('login-error-msg').textContent = result.error;
                 document.getElementById('login-error').classList.add('show');
                 btn.disabled = false;
@@ -121,16 +124,21 @@
         // BUG FIX: Made async — Auth.register() returns a Promise
         async function handleRegister(e) {
             e.preventDefault();
+            isAuthSubmitting = true;
             const name = document.getElementById('reg-name').value.trim();
             const username = document.getElementById('reg-username').value.trim();
             const password = document.getElementById('reg-password').value;
 
-            if (!name || !username || !password) return;
+            if (!name || !username || !password) {
+                isAuthSubmitting = false;
+                return;
+            }
 
             const usernameRegex = /^[a-zA-Z0-9_\.]+$/;
             if (!usernameRegex.test(username)) {
                 document.getElementById('login-error-msg').textContent = "Username can only contain letters, numbers, underscores, and periods (no spaces).";
                 document.getElementById('login-error').classList.add('show');
+                isAuthSubmitting = false;
                 return;
             }
 
@@ -138,6 +146,7 @@
             if (result.success) {
                 window.location.href = 'app.html';
             } else {
+                isAuthSubmitting = false;
                 document.getElementById('login-error-msg').textContent = result.error;
                 document.getElementById('login-error').classList.add('show');
             }

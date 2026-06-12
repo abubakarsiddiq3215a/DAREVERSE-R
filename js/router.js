@@ -226,6 +226,11 @@ async function initApp() {
             }
             hideDotIfEmpty('friend-dot', requests.length);
             hideDotIfEmpty('mob-friend-dot', requests.length);
+            const tabDot = el('tab-friend-requests-dot');
+            if (tabDot) {
+                tabDot.style.display = requests.length > 0 ? 'inline-block' : 'none';
+            }
+
 
             let proofs = [];
             let challenges = [];
