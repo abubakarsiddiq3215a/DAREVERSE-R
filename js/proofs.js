@@ -203,7 +203,7 @@ async function voteOnProof(proofId, voteValue) {
     if (votes[me.id]) { toast('You already voted!', 'error'); return; }
 
     votes[me.id] = voteValue;
-    await proofDocRef.update({ votes });
+    await DB.updateProof(proofId, { votes });
 
     // Award 1 pt for participating in community voting
     await Gamification.awardVoting(me.id);
@@ -229,10 +229,10 @@ async function voteOnProof(proofId, voteValue) {
 
         if (validPct >= 70) {
             // Auto-approve
-            await proofDocRef.update({ approved: true, status: 'resolved' });
+            await DB.updateProof(proofId, { approved: true, status: 'resolved' });
             if (chal) {
                 const updatedStatus = Object.assign({}, chal.status || {}, { [proof.fromId]: 'approved' });
-                await db.collection('challenges').doc(chal.id).update({ status: updatedStatus });
+                await DB.updateChallenge(chal.id, { status: updatedStatus });
                 const pts = chal.difficulty === 'hard' ? 50 : chal.difficulty === 'medium' ? 25 : 10;
                 await Gamification.awardCompletion(proof.fromId, chal.difficulty, chal.category, chal.id);
                 await Notifications.send(proof.fromId, 'proof_approved', { points: pts, challengeName: chal.name });
@@ -240,16 +240,16 @@ async function voteOnProof(proofId, voteValue) {
             toast('Voted. Community approved this proof.', 'success');
         } else if (validPct < 40) {
             // Auto-reject
-            await proofDocRef.update({ approved: false, status: 'resolved' });
+            await DB.updateProof(proofId, { approved: false, status: 'resolved' });
             if (chal) {
                 const updatedStatus = Object.assign({}, chal.status || {}, { [proof.fromId]: 'rejected' });
-                await db.collection('challenges').doc(chal.id).update({ status: updatedStatus });
+                await DB.updateChallenge(chal.id, { status: updatedStatus });
             }
             await Notifications.send(proof.fromId, 'proof_rejected', {});
             toast('Voted. Community rejected this proof.', 'info');
         } else {
             // Escalate to challenge creator for final decision.
-            await proofDocRef.update({ status: 'escalated' });
+            await DB.updateProof(proofId, { status: 'escalated' });
             toast('Voted. Escalated to challenge creator for review.', 'info');
         }
     } else {
@@ -265,7 +265,7 @@ async function verifyProof(proofId, approved) {
     const proof = proofs.find(p => p.id === proofId);
     if (!proof) return;
 
-    await db.collection('proofs').doc(proofId).update({ approved });
+    await DB.updateProof(proofId, { approved });
 
     if (approved) {
         const me = Auth.me();
@@ -274,7 +274,7 @@ async function verifyProof(proofId, approved) {
         const chal = challenges.find(c => c.id === proof.chalId);
         if (chal) {
             const updatedStatus = Object.assign({}, chal.status || {}, { [proof.fromId]: 'approved' });
-            await db.collection('challenges').doc(chal.id).update({ status: updatedStatus });
+            await DB.updateChallenge(chal.id, { status: updatedStatus });
             const pts = chal.difficulty === 'hard' ? 50 : chal.difficulty === 'medium' ? 25 : 10;
             await Gamification.awardCompletion(proof.fromId, chal.difficulty, chal.category, chal.id);
             await Notifications.send(proof.fromId, 'proof_approved', { points: pts, challengeName: chal.name });
@@ -287,7 +287,7 @@ async function verifyProof(proofId, approved) {
         const chal = challenges.find(c => c.id === proof.chalId);
         if (chal) {
             const updatedStatus = Object.assign({}, chal.status || {}, { [proof.fromId]: 'rejected' });
-            await db.collection('challenges').doc(chal.id).update({ status: updatedStatus });
+            await DB.updateChallenge(chal.id, { status: updatedStatus });
         }
         await Notifications.send(proof.fromId, 'proof_rejected', {});
         toast('Proof rejected');

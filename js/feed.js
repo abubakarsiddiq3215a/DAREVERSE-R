@@ -210,7 +210,7 @@ async function acceptChallenge(chalId) {
     }
     chal.status[me.id] = 'accepted';
 
-    await db.collection('challenges').doc(chalId).update({
+    await DB.updateChallenge(chalId, {
         targets: chal.targets,
         status: chal.status
     });
@@ -237,7 +237,7 @@ async function acceptPublicChallenge(chalId) {
       chal.targets.push(me.id);
     }
     chal.status[me.id] = 'accepted';
-    await db.collection('challenges').doc(chalId).update({
+    await DB.updateChallenge(chalId, {
         targets: chal.targets,
         status: chal.status
     });

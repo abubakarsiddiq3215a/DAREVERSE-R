@@ -124,6 +124,7 @@ async function uploadProfileImage(input) {
 
         // Update Firestore user document
         await db.collection('users').doc(me.id).update({ profileImage: url });
+        DB.clearCache('users');
 
         // Update local cached user data
         me.profileImage = url;

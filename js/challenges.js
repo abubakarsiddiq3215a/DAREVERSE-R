@@ -179,9 +179,7 @@ async function createChallenge() {
 }
 
 async function deleteChallenge(chalId) {
-    await db.collection('challenges').doc(chalId).delete();
-    const proofsSnapshot = await db.collection('proofs').where('chalId', '==', chalId).get();
-    for (const doc of proofsSnapshot.docs) await doc.ref.delete();
+    await DB.deleteChallenge(chalId);
     toast('Challenge deleted', 'success');
     renderPage(currentPage);
 }
@@ -288,7 +286,7 @@ async function submitProof() {
         await DB.addProof(newProof);
         // Use targeted update instead of full overwrite
         const updatedStatus = Object.assign({}, chal.status || {}, { [me.id]: 'approved' });
-        await db.collection('challenges').doc(chal.id).update({ status: updatedStatus });
+        await DB.updateChallenge(chal.id, { status: updatedStatus });
         await Gamification.awardHonorCompletion(me.id);
         await Notifications.send(chal.creator, 'challenge_completed', { challengeName: chal.name });
         closeModal('submitProofModal');
@@ -333,7 +331,7 @@ async function submitProof() {
         chal.status[me.id] = 'completed';
         // Use targeted update to avoid overwriting the whole doc
         const updatedStatus = Object.assign({}, chal.status || {}, { [me.id]: 'completed' });
-        await db.collection('challenges').doc(chal.id).update({ status: updatedStatus });
+        await DB.updateChallenge(chal.id, { status: updatedStatus });
 
         // Award points right away only for private challenges (public wait for community vote)
         if (!chal.isPublic) {

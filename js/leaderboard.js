@@ -7,11 +7,11 @@ async function renderLeaderboard(tab) {
     const list = document.getElementById('lb-list');
 
     list.innerHTML = `<div style="text-align:center;padding:2rem;">${icon('clock', 32)}<div style="margin-top:0.5rem;color:var(--muted);">Loading rankings...</div></div>`;
-
-    let friendIds = [], allUsers = [];
+    let friendIds = [], allUsers = [], gameDataMap = {};
     try {
         friendIds = await DB.getFriends(me.id);
         allUsers = await DB.getUsers();
+        gameDataMap = await DB.getAllGameData();
     } catch (err) {
         console.error('Leaderboard load error:', err);
         if (err && err.code === 'permission-denied') {
@@ -34,12 +34,7 @@ async function renderLeaderboard(tab) {
         // Friends tab: show me + friends only. Global tab: show ALL users.
         if (tab === 'friends' && !isMe && !friendIds.includes(u.id)) continue;
 
-        let gd = { rankPoints: 0, totalCompleted: 0, currentStreak: 0 };
-        try {
-            gd = await DB.getGameData(u.id);
-        } catch (e) {
-            console.warn('Could not load game data for', u.id, e);
-        }
+        const gd = gameDataMap[u.id] || { rankPoints: 0, totalCompleted: 0, currentStreak: 0 };
         players.push({
             id: u.id,
             name: u.name,
@@ -52,7 +47,6 @@ async function renderLeaderboard(tab) {
             isMe
         });
     }
-
     // Sort by rank points descending
     players.sort((a, b) => b.rankPoints - a.rankPoints);
 
