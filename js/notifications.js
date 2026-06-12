@@ -86,12 +86,19 @@ const Notifications = {
             id: 'n' + Date.now() + Math.random().toString(36).substr(2, 4),
             to: toId,
             from: me.id,
-            fromName: me.name,
+            fromName: me.name || me.username || 'Player',
             type,
             read: false,
             timestamp: new Date().toISOString(),
             ...data
         };
+
+        // Filter undefined fields from notif to prevent Firestore errors
+        Object.keys(notif).forEach(key => {
+            if (notif[key] === undefined) {
+                delete notif[key];
+            }
+        });
 
         await db.collection('notification').doc(notif.id).set(notif);
     },

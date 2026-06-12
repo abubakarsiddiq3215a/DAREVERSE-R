@@ -20,6 +20,9 @@ const Auth = {
             uid: user.uid,
             email: user.email,
             id: user.uid, // compatible with existing code
+            name: user.displayName || 'Player',
+            username: user.email ? user.email.split('@')[0] : 'player',
+            initials: 'PL',
             ...profile
         };
     },
