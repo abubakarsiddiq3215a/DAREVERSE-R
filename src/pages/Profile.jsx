@@ -96,7 +96,7 @@ export const Profile = ({ me, challenges = [], onRefreshData, onTriggerPayment }
 
     const handleBuyVIP = () => {
         if (!onTriggerPayment) return;
-        onTriggerPayment(99, 'VIP Monthly Subscription (1 Month)', async () => {
+        onTriggerPayment(5, 'VIP Monthly Subscription (1 Month)', async () => {
             try {
                 const updated = { ...gameData, isVIP: true };
                 await DB.saveGameData(me.id, updated);
@@ -112,7 +112,7 @@ export const Profile = ({ me, challenges = [], onRefreshData, onTriggerPayment }
 
     const handleBuyLicense = () => {
         if (!onTriggerPayment) return;
-        onTriggerPayment(499, 'Creator License (Instant Unlock)', async () => {
+        onTriggerPayment(10, 'Creator License (Instant Unlock)', async () => {
             try {
                 const updated = { ...gameData, hasCreatorLicense: true };
                 await DB.saveGameData(me.id, updated);
@@ -467,7 +467,7 @@ export const Profile = ({ me, challenges = [], onRefreshData, onTriggerPayment }
                         <div style={{ marginTop: '0.75rem' }}>
                             {gameData.isVIP ? (
                                 <span style={{ fontSize: '0.75rem', color: 'var(--green)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                                    ✓ Active Sub (₹99/mo)
+                                    ✓ Active Sub (₹5/mo)
                                 </span>
                             ) : (
                                 <button 
@@ -475,7 +475,7 @@ export const Profile = ({ me, challenges = [], onRefreshData, onTriggerPayment }
                                     style={{ width: '100%', background: 'linear-gradient(45deg, var(--gold), #ffb700)', border: 'none', color: '#000', fontWeight: 700, padding: '0.35rem 0.5rem' }}
                                     onClick={handleBuyVIP}
                                 >
-                                    Unlock VIP @ ₹99
+                                    Unlock VIP @ ₹5
                                 </button>
                             )}
                         </div>
@@ -501,7 +501,7 @@ export const Profile = ({ me, challenges = [], onRefreshData, onTriggerPayment }
                                     style={{ width: '100%', borderColor: 'var(--border)', padding: '0.35rem 0.5rem' }}
                                     onClick={handleBuyLicense}
                                 >
-                                    Get License @ ₹499
+                                    Get License @ ₹10
                                 </button>
                             )}
                         </div>
