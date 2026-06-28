@@ -258,12 +258,6 @@ function FeeBreakdown({ amount, isSubscription }) {
    Main PaymentModal
 ───────────────────────────────────────────── */
 export const PaymentModal = ({ isOpen, onClose, amount, title, onSuccess, me, isSubscription = false }) => {
-    const [activeTab,  setActiveTab]  = useState('upi');   // 'upi' | 'card'
-    const [selectedApp, setSelectedApp] = useState(null);   // 'gpay' | 'phonepe' | 'paytm' | null
-    const [upiId,      setUpiId]      = useState('');
-    const [cardNumber, setCardNumber] = useState('');
-    const [cardExpiry, setCardExpiry] = useState('');
-    const [cardCvv,    setCardCvv]    = useState('');
     const [status,     setStatus]     = useState('idle');  // 'idle' | 'processing' | 'success'
     const [progress,   setProgress]   = useState(0);
     const [alert,      setAlert]      = useState(null);    // { type, title, message }
@@ -273,8 +267,7 @@ export const PaymentModal = ({ isOpen, onClose, amount, title, onSuccess, me, is
     useEffect(() => {
         if (isOpen) {
             setStatus('idle'); setProgress(0);
-            setUpiId(''); setCardNumber(''); setCardExpiry(''); setCardCvv('');
-            setSelectedApp(null); setAlert(null); setActiveTab('upi');
+            setAlert(null);
         }
     }, [isOpen]);
 
@@ -284,18 +277,6 @@ export const PaymentModal = ({ isOpen, onClose, amount, title, onSuccess, me, is
     };
 
     if (!isOpen) return null;
-
-    /* ── Select a UPI app ── */
-    const handleSelectApp = (app) => {
-        setSelectedApp(app.id);
-        // Pre-fill the UPI ID field with the app's handle suffix hint
-        if (!upiId || UPI_APPS.some(a => upiId === me?.phone + a.upiHandle)) {
-            setUpiId((me?.phone || '') + app.upiHandle);
-        }
-        setAlert({ type: 'info', title: `${app.label} Selected`, message: `Enter your UPI ID ending in ${app.upiHandle} and click Pay Securely.` });
-    };
-
-    /* ── Submit payment ── */
     const handlePaySubmit = async (e) => {
         e.preventDefault();
         setAlert(null);
@@ -308,8 +289,6 @@ export const PaymentModal = ({ isOpen, onClose, amount, title, onSuccess, me, is
             setStatus('idle'); return;
         }
         setProgress(50);
-
-        const selectedAppCfg = UPI_APPS.find(a => a.id === selectedApp);
 
         const options = {
             key: 'rzp_test_T54lr8m1xSr0nA',
@@ -330,8 +309,6 @@ export const PaymentModal = ({ isOpen, onClose, amount, title, onSuccess, me, is
                 name:    me?.name    || 'Player',
                 email:   me?.email   || 'abubakar3215a@gmail.com',
                 contact: me?.phone   || '6309592888',
-                method:  activeTab === 'upi' ? 'upi' : 'card',
-                ...(activeTab === 'upi' && upiId ? { vpa: upiId } : {}),
             },
             theme: { color: '#FF0055' },
             modal: {
@@ -358,17 +335,7 @@ export const PaymentModal = ({ isOpen, onClose, amount, title, onSuccess, me, is
         }
     };
 
-    /* ── Card expiry auto-format ── */
-    const handleExpiryChange = (e) => {
-        let val = e.target.value.replace(/\D/g, '');
-        if (val.length >= 2) val = val.slice(0, 2) + '/' + val.slice(2);
-        setCardExpiry(val.slice(0, 5));
     };
-
-    const tabs = [
-        { id: 'upi',  label: 'UPI',  icon: <PhoneSVG /> },
-        { id: 'card', label: 'Card', icon: <CardSVG /> }
-    ];
 
     return (
         <>
@@ -469,127 +436,15 @@ export const PaymentModal = ({ isOpen, onClose, amount, title, onSuccess, me, is
                             {/* Alert box */}
                             {alert && <AlertBox {...alert} onClose={() => setAlert(null)} />}
 
-                            {/* Tabs */}
-                            <div style={{
-                                display: 'flex', gap: '0.4rem',
-                                background: 'rgba(255,255,255,0.02)', padding: '0.3rem',
-                                borderRadius: '10px', border: '1px solid var(--border)', marginBottom: '1.25rem'
-                            }}>
-                                {tabs.map(t => (
-                                    <button
-                                        key={t.id} type="button"
-                                        onClick={() => setActiveTab(t.id)}
-                                        className="pm-tab-btn"
-                                        style={{
-                                            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            gap: '0.35rem', padding: '0.5rem',
-                                            border: 'none', borderRadius: '7px', cursor: 'pointer',
-                                            background: activeTab === t.id ? 'rgba(255,0,85,0.12)' : 'transparent',
-                                            color: activeTab === t.id ? 'var(--accent)' : 'var(--muted)',
-                                            fontWeight: 600, fontSize: '0.82rem',
-                                            boxShadow: activeTab === t.id ? 'inset 0 0 0 1px rgba(255,0,85,0.3)' : 'none'
-                                        }}
-                                    >
-                                        {t.icon} {t.label}
-                                    </button>
-                                ))}
-                            </div>
-
                             <form onSubmit={handlePaySubmit}>
-                                {/* ── UPI TAB ── */}
-                                {activeTab === 'upi' && (
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        {/* App picker */}
-                                        <div style={{ fontSize: '0.72rem', color: 'var(--muted)', marginBottom: '0.6rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                                            Quick Pay with App
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1rem' }}>
-                                            {UPI_APPS.map(app => (
-                                                <button
-                                                    key={app.id}
-                                                    type="button"
-                                                    onClick={() => handleSelectApp(app)}
-                                                    className={`upi-app-btn ${selectedApp === app.id ? 'active' : ''}`}
-                                                    style={{
-                                                        flex: 1, display: 'flex', flexDirection: 'column',
-                                                        alignItems: 'center', gap: '0.4rem', padding: '0.65rem 0.4rem',
-                                                        borderRadius: '10px', cursor: 'pointer',
-                                                        background: selectedApp === app.id
-                                                            ? `linear-gradient(135deg, ${app.color}22, ${app.color}11)`
-                                                            : 'rgba(255,255,255,0.03)',
-                                                        borderColor: selectedApp === app.id ? app.color : 'rgba(255,255,255,0.08)',
-                                                        boxShadow: selectedApp === app.id ? `0 0 18px ${app.color}33` : 'none'
-                                                    }}
-                                                >
-                                                    {app.icon}
-                                                    <span style={{ fontSize: '0.65rem', color: selectedApp === app.id ? '#fff' : 'var(--muted)', fontWeight: 600, textAlign: 'center', lineHeight: 1.2 }}>
-                                                        {app.label}
-                                                    </span>
-                                                </button>
-                                            ))}
-                                        </div>
-
-                                        {/* UPI ID field */}
-                                        <div className="form-group" style={{ marginBottom: 0 }}>
-                                            <label style={{ fontSize: '0.72rem' }}>UPI ID / VPA</label>
-                                            <input
-                                                type="text"
-                                                placeholder="yourname@okaxis"
-                                                value={upiId}
-                                                onChange={(e) => setUpiId(e.target.value)}
-                                                required
-                                                pattern="[a-zA-Z0-9.\-_+]+@[a-zA-Z0-9.\-]+"
-                                                title="Enter a valid UPI address e.g. name@okaxis"
-                                                style={{ marginBottom: '0.5rem' }}
-                                            />
-                                        </div>
-
-                                        <AlertBox
-                                            type="info"
-                                            message={isSubscription 
-                                                ? "Payment goes securely to DareVerse. Razorpay will automatically show a QR code or UPI app options on the next screen."
-                                                : "Your payment goes to DareVerse. After the challenge, the winner receives their payout minus platform fee."}
-                                        />
-                                    </div>
-                                )}
-
-                                {/* ── CARD TAB ── */}
-                                {activeTab === 'card' && (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '1.25rem' }}>
-                                        <div className="form-group" style={{ marginBottom: 0 }}>
-                                            <label style={{ fontSize: '0.72rem' }}>Card Number</label>
-                                            <input
-                                                type="text" placeholder="4111 2222 3333 4444"
-                                                value={cardNumber}
-                                                onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').substring(0, 16))}
-                                                required minLength={16} maxLength={16}
-                                            />
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '0.85rem' }}>
-                                            <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                                                <label style={{ fontSize: '0.72rem' }}>Expiry</label>
-                                                <input
-                                                    type="text" placeholder="MM/YY"
-                                                    value={cardExpiry} onChange={handleExpiryChange}
-                                                    required maxLength={5}
-                                                />
-                                            </div>
-                                            <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                                                <label style={{ fontSize: '0.72rem' }}>CVV</label>
-                                                <input
-                                                    type="password" placeholder="•••"
-                                                    value={cardCvv}
-                                                    onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').substring(0, 3))}
-                                                    required minLength={3} maxLength={3}
-                                                />
-                                            </div>
-                                        </div>
-                                        <AlertBox
-                                            type="warn"
-                                            message="Card details are collected securely by Razorpay. DareVerse never stores your card information."
-                                        />
-                                    </div>
-                                )}
+                                <div style={{ marginBottom: '1.25rem' }}>
+                                    <AlertBox
+                                        type="info"
+                                        message={isSubscription 
+                                            ? "Payment goes securely to DareVerse. Razorpay will automatically show all payment options (UPI, Cards, Netbanking) on the next screen."
+                                            : "Your payment goes to DareVerse. After the challenge, the winner receives their payout minus platform fee."}
+                                    />
+                                </div>
 
                                 {/* Fee breakdown */}
                                 <FeeBreakdown amount={amount} isSubscription={isSubscription} />
