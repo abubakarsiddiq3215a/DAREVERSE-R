@@ -264,6 +264,7 @@ export const PaymentModal = ({ isOpen, onClose, amount, title, onSuccess, me, is
             console.error('Razorpay init error:', err);
             setAlert({ type: 'error', title: 'Checkout Error', message: 'Failed to open payment checkout. Please refresh and try again.' });
             setStatus('idle');
+        }
     };
 
     return (
