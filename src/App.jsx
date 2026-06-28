@@ -54,13 +54,15 @@ export const MainApp = () => {
 
     // Payment Gateway simulator state
     const [paymentOpen, setPaymentOpen] = useState(false);
-    const [paymentArgs, setPaymentArgs] = useState({ amount: 0, title: '', onSuccess: () => {} });
+    const [paymentArgs, setPaymentArgs] = useState({ amount: 0, title: '', onSuccess: () => {}, isSubscription: false });
 
     const triggerPayment = (amount, title, onSuccessCallback) => {
+        const isSubscription = title.includes('Subscription') || title.includes('License');
         setPaymentArgs({
             amount,
             title,
-            onSuccess: onSuccessCallback
+            onSuccess: onSuccessCallback,
+            isSubscription
         });
         setPaymentOpen(true);
     };
@@ -483,6 +485,7 @@ export const MainApp = () => {
                 title={paymentArgs.title}
                 onSuccess={paymentArgs.onSuccess}
                 me={me}
+                isSubscription={paymentArgs.isSubscription}
             />
 
             <SubmitProof 

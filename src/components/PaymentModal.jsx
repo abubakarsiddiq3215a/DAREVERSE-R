@@ -181,57 +181,14 @@ function AlertBox({ type = 'info', title, message, onClose }) {
 }
 
 /* ─────────────────────────────────────────────
-   QR Code Panel
-   Razorpay generates its own QR in the checkout
-   popup. Here we just show the amount and guide
-   the user to click "Pay Securely" → UPI QR.
-───────────────────────────────────────────── */
-function UpiQrCode({ amount, description, onPayNow }) {
-    // Decorative QR: encodes the payment amount as display-only info
-    const displayText = `DareVerse | Pay ₹${amount} | ${description || 'Challenge Entry'}`;
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=10&color=00F0FF&bgcolor=06060C&data=${encodeURIComponent(displayText)}`;
-
-    return (
-        <div style={{ textAlign: 'center' }}>
-            {/* Decorative QR preview */}
-            <div style={{
-                display: 'inline-block', padding: '0.65rem', borderRadius: '14px',
-                border: '1.5px solid rgba(0,240,255,0.3)', background: 'rgba(0,240,255,0.04)',
-                boxShadow: '0 0 20px rgba(0,240,255,0.15)', marginBottom: '0.75rem'
-            }}>
-                <img src={qrUrl} alt="QR Code" width={160} height={160}
-                     style={{ borderRadius: '8px', display: 'block' }} />
-            </div>
-
-            {/* How it works */}
-            <div style={{
-                background: 'rgba(0,240,255,0.06)', border: '1px solid rgba(0,240,255,0.2)',
-                borderRadius: '10px', padding: '0.85rem 1rem', textAlign: 'left', marginBottom: '0.75rem'
-            }}>
-                <div style={{ fontWeight: 700, fontSize: '0.78rem', color: 'var(--neon)', marginBottom: '0.5rem' }}>📱 How to pay via QR</div>
-                {[
-                    '1. Click "Pay ₹' + parseFloat(amount).toFixed(2) + ' via Razorpay" below',
-                    '2. In the Razorpay popup, choose "QR Code" method',
-                    '3. Scan the QR with any UPI app (GPay, PhonePe, Paytm)',
-                    '4. Confirm the payment in your UPI app',
-                ].map((step, i) => (
-                    <div key={i} style={{ fontSize: '0.74rem', color: 'var(--muted)', marginBottom: '0.25rem' }}>{step}</div>
-                ))}
-            </div>
-
-            <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' }}>
-                ℹ️ The live scannable QR is shown inside the Razorpay checkout popup
-            </div>
-        </div>
-    );
-}
-
-/* ─────────────────────────────────────────────
    Fee Breakdown Card
 ───────────────────────────────────────────── */
-function FeeBreakdown({ amount }) {
+function FeeBreakdown({ amount, isSubscription }) {
     const { razorpayFee, platformFee, winnerGets } = calcFees(amount);
     const [expanded, setExpanded] = useState(false);
+
+    // Subscriptions don't have platform fees or winners; money goes to owner.
+    const ownerGets = +(parseFloat(amount) - razorpayFee).toFixed(2);
 
     return (
         <div style={{
@@ -259,19 +216,36 @@ function FeeBreakdown({ amount }) {
             {expanded && (
                 <div style={{ padding: '0 1rem 0.9rem', borderTop: '1px solid var(--border)' }}>
                     <div style={{ paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                        {[
-                            { label: 'You Pay',          value: `₹${parseFloat(amount).toFixed(2)}`, color: 'var(--text)',   bold: true  },
-                            { label: 'Razorpay Fee (~2%)', value: `−₹${razorpayFee}`,               color: 'var(--muted)'               },
-                            { label: `DareVerse Platform Fee (${PLATFORM_FEE_PERCENT}%)`, value: `−₹${platformFee}`, color: 'var(--accent)' },
-                            { label: 'Winner Receives',  value: `₹${winnerGets}`,                   color: 'var(--green)',  bold: true  },
-                        ].map(row => (
-                            <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.74rem', color: 'var(--muted)' }}>{row.label}</span>
-                                <span style={{ fontSize: '0.78rem', fontWeight: row.bold ? 700 : 500, color: row.color, fontFamily: 'var(--font-mono)' }}>{row.value}</span>
-                            </div>
-                        ))}
+                        {isSubscription ? (
+                            // Subscription Breakdown (VIP/License)
+                            [
+                                { label: 'You Pay',          value: `₹${parseFloat(amount).toFixed(2)}`, color: 'var(--text)',   bold: true  },
+                                { label: 'Razorpay Fee (~2%)', value: `−₹${razorpayFee}`,               color: 'var(--muted)'               },
+                                { label: 'Platform Owner Receives', value: `₹${ownerGets}`, color: 'var(--green)', bold: true }
+                            ].map(row => (
+                                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '0.74rem', color: 'var(--muted)' }}>{row.label}</span>
+                                    <span style={{ fontSize: '0.78rem', fontWeight: row.bold ? 700 : 500, color: row.color, fontFamily: 'var(--font-mono)' }}>{row.value}</span>
+                                </div>
+                            ))
+                        ) : (
+                            // Challenge Breakdown
+                            [
+                                { label: 'You Pay',          value: `₹${parseFloat(amount).toFixed(2)}`, color: 'var(--text)',   bold: true  },
+                                { label: 'Razorpay Fee (~2%)', value: `−₹${razorpayFee}`,               color: 'var(--muted)'               },
+                                { label: `DareVerse Platform Fee (${PLATFORM_FEE_PERCENT}%)`, value: `−₹${platformFee}`, color: 'var(--accent)' },
+                                { label: 'Winner Receives',  value: `₹${winnerGets}`,                   color: 'var(--green)',  bold: true  },
+                            ].map(row => (
+                                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '0.74rem', color: 'var(--muted)' }}>{row.label}</span>
+                                    <span style={{ fontSize: '0.78rem', fontWeight: row.bold ? 700 : 500, color: row.color, fontFamily: 'var(--font-mono)' }}>{row.value}</span>
+                                </div>
+                            ))
+                        )}
                         <div style={{ borderTop: '1px solid var(--border)', paddingTop: '0.45rem', fontSize: '0.68rem', color: 'var(--muted)', lineHeight: 1.5 }}>
-                            💡 All payments go to DareVerse. Platform fee is retained; winner payout is processed within 2 working days.
+                            {isSubscription 
+                                ? "💡 Subscription payments go directly to the DareVerse Platform."
+                                : "💡 All payments go to DareVerse. Platform fee is retained; winner payout is processed within 2 working days."}
                         </div>
                     </div>
                 </div>
@@ -283,8 +257,8 @@ function FeeBreakdown({ amount }) {
 /* ─────────────────────────────────────────────
    Main PaymentModal
 ───────────────────────────────────────────── */
-export const PaymentModal = ({ isOpen, onClose, amount, title, onSuccess, me }) => {
-    const [activeTab,  setActiveTab]  = useState('upi');   // 'upi' | 'card' | 'qr'
+export const PaymentModal = ({ isOpen, onClose, amount, title, onSuccess, me, isSubscription = false }) => {
+    const [activeTab,  setActiveTab]  = useState('upi');   // 'upi' | 'card'
     const [selectedApp, setSelectedApp] = useState(null);   // 'gpay' | 'phonepe' | 'paytm' | null
     const [upiId,      setUpiId]      = useState('');
     const [cardNumber, setCardNumber] = useState('');
@@ -363,25 +337,9 @@ export const PaymentModal = ({ isOpen, onClose, amount, title, onSuccess, me }) 
             modal: {
                 ondismiss: () => setStatus('idle'),
                 animation: true,
-            },
-            config: {
-                display: {
-                    blocks: {
-                        upi_block: {
-                            name: 'Pay via UPI',
-                            instruments: [
-                                {
-                                    method: 'upi',
-                                    apps: ['google_pay', 'phonepe', 'paytm'],
-                                    ...(selectedAppCfg ? { flow: 'intent', app_name: selectedApp === 'gpay' ? 'google_pay' : selectedApp } : {})
-                                }
-                            ]
-                        }
-                    },
-                    sequence: ['block.upi_block', 'card', 'netbanking'],
-                    preferences: { show_default_blocks: true }
-                }
             }
+            // We removed the custom 'config.display' blocks to allow Razorpay 
+            // to natively show UPI, QR, and Cards for both desktop and mobile.
         };
 
         try {
@@ -409,8 +367,7 @@ export const PaymentModal = ({ isOpen, onClose, amount, title, onSuccess, me }) 
 
     const tabs = [
         { id: 'upi',  label: 'UPI',  icon: <PhoneSVG /> },
-        { id: 'card', label: 'Card', icon: <CardSVG /> },
-        { id: 'qr',   label: 'QR',   icon: <QrSVG /> },
+        { id: 'card', label: 'Card', icon: <CardSVG /> }
     ];
 
     return (
@@ -589,7 +546,9 @@ export const PaymentModal = ({ isOpen, onClose, amount, title, onSuccess, me }) 
 
                                         <AlertBox
                                             type="info"
-                                            message="Your payment goes to DareVerse. After the challenge, the winner receives their payout minus platform fee."
+                                            message={isSubscription 
+                                                ? "Payment goes securely to DareVerse. Razorpay will automatically show a QR code or UPI app options on the next screen."
+                                                : "Your payment goes to DareVerse. After the challenge, the winner receives their payout minus platform fee."}
                                         />
                                     </div>
                                 )}
@@ -632,15 +591,8 @@ export const PaymentModal = ({ isOpen, onClose, amount, title, onSuccess, me }) 
                                     </div>
                                 )}
 
-                                {/* ── QR TAB ── */}
-                                {activeTab === 'qr' && (
-                                    <div style={{ marginBottom: '1.25rem' }}>
-                                        <UpiQrCode amount={amount} description={title} />
-                                    </div>
-                                )}
-
                                 {/* Fee breakdown */}
-                                <FeeBreakdown amount={amount} />
+                                <FeeBreakdown amount={amount} isSubscription={isSubscription} />
 
                                 {/* Pay button */}
                                 <button
@@ -715,7 +667,9 @@ export const PaymentModal = ({ isOpen, onClose, amount, title, onSuccess, me }) 
                             <AlertBox
                                 type="success"
                                 title="What happens next?"
-                                message={`The prize pool is held by DareVerse. Once a winner is declared, they receive their payout (after ${PLATFORM_FEE_PERCENT}% platform fee) within 2 working days.`}
+                                message={isSubscription 
+                                    ? "Your subscription is now active! Enjoy your new perks immediately."
+                                    : `The prize pool is held by DareVerse. Once a winner is declared, they receive their payout (after ${PLATFORM_FEE_PERCENT}% platform fee) within 2 working days.`}
                             />
                         </div>
                     )}
